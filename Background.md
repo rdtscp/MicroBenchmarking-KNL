@@ -60,7 +60,7 @@ A single __Tile__ has:
 * __High Bandwidth Memory__
 * __16GB__
 * __Higher Latency__ relative to main memory.
-* 2 Configurable Modes:
+* 3 Configurable Modes:
   * __Cache Mode__:
     * Acts as a "cache" for main memory
     * Only MCDRAM Addressable
