@@ -101,7 +101,7 @@ Semester 1:
   13. _(15<sup>th</sup> Dec)_ - Finish work on benchmarking the 3 MCDRAM modes.
   14. _(21<sup>st</sup> Dec)_ - __Headroom__ for first semester work.
   
-* __Winter Holidays__ - Work more on either formalising results, or finishing work that
+* __Winter Holidays__ - Work more on either formalising results, or complete unfinished work.
 
 Semester 2 _(TBC)_:
   1. _(19<sup>th</sup> Jan)_ - Meet with Supervisor to discuss progress, and report.
