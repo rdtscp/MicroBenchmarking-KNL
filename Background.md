@@ -107,7 +107,7 @@ Semester 2 _(TBC)_:
   1. _(19<sup>th</sup> Jan)_ - Meet with Supervisor to discuss progress, and report.
   2. _(26<sup>th</sup> Jan)_ - __Headroom__ for further work.
   3. _(02<sup>th</sup> Feb)_ - __Headroom__ for further work.
-  4. _(09<sup>th</sup> Feb)_ - Work on __report__.
+  4. _(09<sup>th</sup> Feb)_ - Work on __report__.
   5. _(16<sup>th</sup> Feb)_ - Work on __report__.
   6. _(23<sup>rd</sup> Feb)_ - Work on __report__.
   7. _(02<sup>nd</sup> Mar)_ - Work on __report__.
