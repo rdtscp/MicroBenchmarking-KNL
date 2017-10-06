@@ -80,8 +80,7 @@ A single __Tile__ has:
 
 ## What to Benchmark
 
-I am interested in finding out the cost of a cache miss in the different configurations of the L2 Cache, and MCDRAM.
-Particularly I am interested in finding out the latency and bandwidth of reading from both the L2 Cache and MCDRAM are, and what effect a cache miss would have in the different configurations of Cache & MCDRAM.
+I am interested in measuring the bandwith and latency of data transfer between caches and memory in different configurations. Also the cost of a cache misses in the different configurations of the L2 Cache, and MCDRAM.
 
 ## Project Plan
 
