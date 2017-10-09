@@ -4,7 +4,7 @@
 # Background Info on Intel Knights Landing.
 
 ## Architecture Overview
-![[0] - KNL Overview](https://github.com/acwilson96/MicroBenchmarking-KNL/blob/master/KNL_Overview.png "[0] - KNL Overview")
+![[0] - KNL Overview](https://github.com/acwilson96/MicroBenchmarking-KNL/blob/master/Docs/KNL_Overview.png "[0] - KNL Overview")
 
 _Figure 1: Pictorial overview of a KNL Chip_
 
