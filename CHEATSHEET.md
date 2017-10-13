@@ -29,3 +29,10 @@ module swap PrgEnv-cray PrgEnv-intel
 cd $PBS_O_WORKDIR
 aprun -n {number of KNL nodes to use} -d {number of threads} ./{application executable}
 ```
+## To configure memory modes
+```
+ PBS -l select={number of nodes}:aoe={__L2 Cache Config__}\_{__MCDRAM Config__}
+ ```
+ ### Where:
+  * __L2 Cache Config__ = [ a2a | quad | snc4 ]
+  * __MCDRAM Config__   = [ 0 | 25 | 50 | 100 ] -  _s.t. the value is the % of memory used as cache._
