@@ -29,6 +29,15 @@ module swap PrgEnv-cray PrgEnv-intel
 cd $PBS_O_WORKDIR
 aprun -n {number of KNL cores to use} -d {number of threads} ./{application executable}
 ```
+### Tracking Jobs
+
+```unix
+qstat -a        # Detailed job statuses.
+qstat -f        # Detailed job list.
+qstat -u $USER  # Jobs for current user only.
+qstat -T        # Shows estimated start time of jobs.
+```
+
 ## To configure memory modes
 ```
  #PBS -l select={number of KNL nodes to use}:aoe={L2 Cache Config}_{MCDRAM Config}
