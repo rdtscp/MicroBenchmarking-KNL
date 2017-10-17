@@ -31,7 +31,7 @@ aprun -n {number of KNL cores to use} -d {number of threads} ./{application exec
 ```
 ## To configure memory modes
 ```
- #PBS -l select={number of KNL nodes to use}:aoe={__L2 Cache Config__}\_{__MCDRAM Config__}
+ #PBS -l select={number of KNL nodes to use}:aoe={L2 Cache Config}_{MCDRAM Config}
  ```
  ### Where:
   * __L2 Cache Config__ = [ a2a | quad | snc4 ]
