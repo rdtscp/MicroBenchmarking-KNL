@@ -21,7 +21,7 @@ module swap PrgEnv-cray PrgEnv-intel
 
 ```
 #!/bin/bash
-#PBS -N streams
+#PBS -N {Job Name}
 #PBS -l select=1:aoe=quad_100
 #PBS -l walltime=00:05:00
 #PBS -A {budget account}
