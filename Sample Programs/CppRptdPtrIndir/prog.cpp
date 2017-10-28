@@ -1,6 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <chrono>
+#include <iostream>
+#include <vector>
+#include <numeric>
+#include <unistd.h>
+#include "stdlib.h"
+#include "stdio.h"
+#include "string.h"
 
 // Single struct is 16B
 struct Cell {
@@ -8,6 +16,7 @@ struct Cell {
     int val;
 };
 
+int mem_fill_size = (400 * 1024 * 1024) / 16;
 struct Cell head;
 
 void init() {
@@ -15,43 +24,76 @@ void init() {
     // Set up linked list of cells
     Cell *curr = &head;                              // Declare pointer to head of list => curr == address of head.
     printf("Starting new list @ %p \n", curr);
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < mem_fill_size; i++) {
         Cell *nextCell = new Cell();
-        nextCell->val = 10;
-        curr->next = nextCell;      
-        printf("Declared new cell @ %p \n", curr->next);
+        curr->next = nextCell;
+        // Second last
+        if (i == mem_fill_size - 1) curr->val = 99;
+        // Last read of L1 Cache
+        if (i == 4 * 1024) curr->val = 1;
+        // Last read of L2 Cache
+        if (i == (2 * 1024 * 1024)/16) curr->val = 2;
         curr = curr->next;
     }
-    curr->val = 10;
-    printf(" --- Initialised --- \n");
+    printf(" --- Block Numbers ---\n");
+    printf("     L2 Cache Starts at cell: %d", (4 * 1024));
+    printf("\n     DRAM Starts at cell: %d", ((64 *  1024 + 2 * 1024 * 1024)/16));
+    printf("\n --- Initialised --- \n");
 }
 
 int runTests() {
     printf(" --- Testing --- \n");
     // Fetch the last struct of the list.
     struct Cell *ptr = &head;
-    printf("%p \n", ptr);
+    auto t0 = std::chrono::steady_clock::now();
     while (ptr->next != NULL) {
-        printf("%p \n", ptr->next);
         ptr = ptr->next;
+        if (ptr->val != 0) {
+            int level = ptr->val;
+            auto t1 = std::chrono::steady_clock::now();
+            ptr = ptr->next;
+            auto t2 = std::chrono::steady_clock::now();
+            std::chrono::duration<double> lastread = t2 - t1;
+            std::cout << "First Read, Level " << level++ << ": " << lastread.count() << '\n';
+            if (level == 99) return 0;
+        }
     }
-    printf("%p \n", ptr->next);
-    int x = ptr->val;
-    printf(" --- Tested ---\n"); 
-    return x;
+    printf(" --- Tested ---\n");
+    return 1;
+}
+/*
+ *  Solution for reading processes memory usage: https://stackoverflow.com/a/64166
+ */
+int parseLine(char* line){
+    // This assumes that a digit will be found and the line ends in " Kb".
+    int i = strlen(line);
+    const char* p = line;
+    while (*p <'0' || *p > '9') p++;
+    line[i-3] = '\0';
+    i = atoi(p);
+    return i;
+}
+int getValue(){ //Note: this value is in KB!
+    FILE* file = fopen("/proc/self/status", "r");
+    int result = -1;
+    char line[128];
+
+    while (fgets(line, 128, file) != NULL){
+        if (strncmp(line, "VmRSS:", 6) == 0){
+            result = parseLine(line);
+            break;
+        }
+    }
+    fclose(file);
+    return result;
 }
 
 int main() {
-    clock_t initTime = time(NULL);
     init();
-    clock_t startTime = time(NULL);
-    int x = runTests();
-    clock_t endTime   = time(NULL);
-    printf(" --- Results ---");
-    printf("\n    Init: %f", (double)(startTime - initTime) / CLOCKS_PER_SEC);
-    printf("\n    Test: %f", (double)(endTime - startTime) / CLOCKS_PER_SEC);
-    printf("\n    Val : %d", x);
+    runTests();
+    printf(" --- Finished ---\n");
+    printf(" --- Memory Usage --- \n");
+    int mem_usg = getValue();
+    printf("    - Physical by Curr Proc: %dKB\n", mem_usg);
+    usleep(100000000);
 }
-
-
-
