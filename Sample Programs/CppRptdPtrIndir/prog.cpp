@@ -100,5 +100,4 @@ int main() {
     printf(" --- Memory Usage --- \n");
     int mem_usg = getValue();
     printf("    - Physical by Curr Proc: %dKB\n", mem_usg);
-    usleep(100000000);
 }
