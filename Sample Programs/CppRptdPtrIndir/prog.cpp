@@ -16,7 +16,10 @@ struct Cell {
     int val;
 };
 
-int mem_fill_size = (400 * 1024 * 1024) / 16;
+int mem_fill_blocks = 400 * 64 * 1024;  // Number of 16B structs to make.
+int l1_cache_blocks = 4 * 1024;         // Number of 16B structs to fill L1 Cache.
+int l2_cache_blocks = 2 * 1024 * 64;    // Number of 16B structs to fill L2 Cache.
+
 struct Cell head;
 
 void init() {
@@ -24,15 +27,15 @@ void init() {
     // Set up linked list of cells
     Cell *curr = &head;                              // Declare pointer to head of list => curr == address of head.
     printf("Starting new list @ %p \n", curr);
-    for (int i = 0; i < mem_fill_size; i++) {
+    for (int i = 0; i < mem_fill_blocks; i++) {
         Cell *nextCell = new Cell();
         curr->next = nextCell;
         // Second last
-        if (i == mem_fill_size - 1) curr->val = 99;
+        if (i == mem_fill_blocks - 1) curr->val = 99;
         // Last read of L1 Cache
-        if (i == 4 * 1024) curr->val = 1;
+        if (i == l1_cache_blocks - 1) curr->val = 1;
         // Last read of L2 Cache
-        if (i == (2 * 1024 * 1024)/16) curr->val = 2;
+        if (i == l2_cache_blocks - 1) curr->val = 2;
         curr = curr->next;
     }
     printf(" --- Block Numbers ---\n");
@@ -61,6 +64,7 @@ int runTests() {
     printf(" --- Tested ---\n");
     return 1;
 }
+
 /*
  *  Solution for reading processes memory usage: https://stackoverflow.com/a/64166
  */
@@ -73,6 +77,7 @@ int parseLine(char* line){
     i = atoi(p);
     return i;
 }
+
 int getValue(){ //Note: this value is in KB!
     FILE* file = fopen("/proc/self/status", "r");
     int result = -1;
