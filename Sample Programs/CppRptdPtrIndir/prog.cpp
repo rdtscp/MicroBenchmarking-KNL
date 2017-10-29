@@ -1,3 +1,7 @@
+/*  Compile:
+ *      g++ -O0 -std=c++11 prog.cpp -o prog
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
