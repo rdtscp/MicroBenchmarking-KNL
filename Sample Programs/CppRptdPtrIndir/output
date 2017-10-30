@@ -33,3 +33,39 @@ First Read, Level 99: 4.1e-07
  --- Memory Usage ---
     - Physical by Curr Proc: 83384KB
 Application 96087 resources: utime ~0s, stime ~1s, Rss ~83480, inblocks ~0, outblocks ~0
+
+
+ ===== Raspberry Pi =====
+
+  --- Initialising ---
+Starting new list @ 0x215b8
+ --- Block Numbers ---
+     L2 Cache Starts at cell: 4096
+     DRAM Starts at cell: 135168
+ --- Initialised ---
+ --- Testing ---
+First Read, Level 1: 7.29e-07
+First Read, Level 2: 2.135e-06
+First Read, Level 99: 2.031e-06
+ --- Tested ---
+ --- Finished ---
+ --- Memory Usage ---
+    - Physical by Curr Proc: 411276KB
+
+
+ ===== MacBook Pro =====
+
+  --- Initialising ---
+Starting new list @ 0x10b984140
+ --- Block Numbers ---
+     L2 Cache Starts at cell: 4096
+     DRAM Starts at cell: 135168
+ --- Initialised ---
+ --- Testing ---
+First Read, Level 1: 5.7e-08
+First Read, Level 2: 4.5e-08
+First Read, Level 99: 1.67e-07
+ --- Tested ---
+ --- Finished ---
+ --- Memory Usage ---
+[1]    29121 segmentation fault  ./prog
