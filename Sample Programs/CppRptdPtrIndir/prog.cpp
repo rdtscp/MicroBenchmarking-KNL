@@ -21,10 +21,10 @@ struct Cell {
 };
 
 int mem_fill_blocks = 400 * 64 * 1024;  // Number of 16B structs to make.
-int l1_cache_blocks = 4 * 1024;         // Number of 16B structs to fill L1 Cache.
-int l2_cache_blocks = 2 * 1024 * 64;    // Number of 16B structs to fill L2 Cache.
+int l1_cache_blocks = 2 * 1024;         // Number of 16B structs to fill L1 Cache.
+int l2_cache_blocks = 1024 * 64;        // Number of 16B structs to fill L2 Cache.
 
-struct Cell head;
+Cell head;
 
 void init() {
     printf(" --- Initialising --- \n");
