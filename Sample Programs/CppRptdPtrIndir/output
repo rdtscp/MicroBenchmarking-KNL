@@ -1,0 +1,35 @@
+ ===== 1 KNL NODE =====
+
+ --- Initialising ---
+Starting new list @ 0x602200
+ --- Block Numbers ---
+     L2 Cache Starts at cell: 4096
+     DRAM Starts at cell: 135168
+ --- Initialised ---
+ --- Testing ---
+First Read, Level 2: 8.3e-07
+First Read, Level 1: 5.7e-07
+First Read, Level 1: 2.7e-07
+First Read, Level 1: 3.7e-07
+First Read, Level 1: 3.2e-07
+First Read, Level 1: 3.3e-07
+First Read, Level 1: 3.3e-07
+First Read, Level 1: 6.4e-07
+First Read, Level 1: 5.9e-07
+First Read, Level 1: 4.9e-07
+First Read, Level 1: 6.4e-07
+First Read, Level 1: 4.9e-07
+First Read, Level 1: 3.3e-07
+First Read, Level 1: 5e-07
+First Read, Level 1: 5.6e-07
+First Read, Level 1: 2.9e-07
+First Read, Level 1: 2.8e-07
+First Read, Level 1: 4.5e-07
+First Read, Level 1: 4.1e-07
+First Read, Level 1: 2.6e-07
+First Read, Level 99: 4.1e-07
+ --- Tested ---
+ --- Finished ---
+ --- Memory Usage ---
+    - Physical by Curr Proc: 83384KB
+Application 96087 resources: utime ~0s, stime ~1s, Rss ~83480, inblocks ~0, outblocks ~0
