@@ -55,6 +55,10 @@ First Read, Level 99: 2.031e-06
 
  ===== MacBook Pro =====
 
+ ?? - L1 Cache
+ 256KB L2 Cache per Core
+ 4MB L3 Cache
+
   --- Initialising ---
 Starting new list @ 0x10b984140
  --- Block Numbers ---
