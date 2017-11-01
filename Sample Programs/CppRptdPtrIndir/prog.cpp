@@ -14,15 +14,18 @@
 #include "stdio.h"
 #include "string.h"
 
+#include <memory>
+
+
 // Single struct is 16B
 struct Cell {
-    struct Cell *next;
+    Cell *next;
     int val;
 };
 
 int mem_fill_blocks = 400 * 64 * 1024;  // Number of 16B structs to make.
 int l1_cache_blocks = 2 * 1024;         // Number of 16B structs to fill L1 Cache.
-int l2_cache_blocks = 1024 * 64;        // Number of 16B structs to fill L2 Cache.
+int l2_cache_blocks = 16 * 1024 * 1024;        // Number of 16B structs to fill L2 Cache.
 
 Cell head;
 
