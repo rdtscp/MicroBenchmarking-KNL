@@ -18,13 +18,13 @@ _ZL10test_rdtscv:
 	mov	rbp, rsp
 	.cfi_def_cfa_register 6
 #APP
-# 24 "prog.cpp" 1
+# 13 "prog.cpp" 1
 	rdtscp
 # 0 "" 2
 #NO_APP
 	mov	QWORD PTR [rbp-24], rax
 #APP
-# 25 "prog.cpp" 1
+# 14 "prog.cpp" 1
 	rdtscp
 # 0 "" 2
 #NO_APP
