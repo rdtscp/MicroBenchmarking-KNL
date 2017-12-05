@@ -28,3 +28,8 @@ int main() {
         printf("%" PRIu64 "\n", test_rdtsc());
     }
 }
+
+/*
+    Working from Linux.
+
+*/
