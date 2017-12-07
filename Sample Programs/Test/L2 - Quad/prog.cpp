@@ -8,43 +8,64 @@ cpu_set_t mask;
 
 int data_arr[4096];
 
-inline void assignToCore(int core_id) {
-    CPU_ZERO(&mask);
-    CPU_SET(core_id, &mask);
-    sched_setaffinity(0, sizeof(mask), &mask);
-}
-
 void init() {
     for (int i = 0; i < 4096; i++) {
         data_arr[i] = 1;
     }
 }
 
-int test() {
-    int temp = 0;
+inline void assignToCore(int core_id) {
+    CPU_ZERO(&mask);
+    CPU_SET(core_id, &mask);
+    sched_setaffinity(0, sizeof(mask), &mask);
+}
+
+uint64_t rdtscp() {
+    uint64_t a;
+    uint64_t b;
+    asm volatile("rdtscp" : "=A"(a));
+    asm volatile("rdtscp" : "=A"(b));
+    return (b - a);
+}
+
+int testL1() {
+    volatile int temp = 0;
     uint64_t a;
     uint64_t b;
     uint64_t out;
-    for (int i = 0; i < 4096; i++) {
+    for (int i = 0; i < 16; i++) {
         temp = data_arr[i];
-        if (i == 2047) {
-            asm("rdtscp" : "=A"(a));
-            temp = data_arr[i+1];
-            asm("rdtscp" : "=A"(b));
-            out = b - a;
-        }
     }
+    asm volatile("rdtscp" : "=A"(a));
+    temp = data_arr[0];                     // This value has already been fetched in above loop, so should exist in L1 Cache
+    asm volatile("rdtscp" : "=A"(b));
+    out = b - a;
     return out;
 }
 
+int main() {    
+    uint64_t rdtscpOverhead = 0;
+    uint64_t testL1_Avg     = 0;
 
-int main() {
+    init();    
+
     assignToCore(0);
-    init();
-    long long test_average = 0;
-    for (int i = 0; i < 1000000; i++) {
-        test_average += test();
+
+    // Get Average Cycle cost of RDTSCP
+    int rdtscpTests = 1000000;      // 1 Million
+    for (int i = 0; i < rdtscpTests; i++) {
+        rdtscpOverhead += rdtscp();
     }
-    test_average = test_average / 1000000;
-    printf("Average cycles for L1 Cache Access: %d\n", test_average);
+    rdtscpOverhead = rdtscpOverhead / rdtscpTests;
+
+    // Test L1 Cache Hit
+    int cacheL1Tests = 1000000;     // 1 Million
+    for (int i = 0; i < cacheL1Tests; i++) {
+        testL1_Avg += testL1();
+    }
+    testL1_Avg = testL1_Avg / cacheL1Tests;
+
+    printf(" --- CYCLES ---\n");
+    printf("RDTSCP Overhead:\t%d\n", rdtscpOverhead);
+    printf("L1 Cache Hit:\t\t%d\n", testL1_Avg);
 }
