@@ -129,7 +129,7 @@ int test_cache(size_t attempts, size_t lower_cache_size, int * latencies, size_t
             "mfence\n\t"        // memory fence
             "mov %4, %%al\n\t"  // load data
             "mfence\n\t"
-            "rdtsc\n\t"
+            "rdtscp\n\t"
             "sub %2, %%edx\n\t" // substract cycle count
             "sbb %3, %%eax"     // substract cycle count
             : "=&a" (cycles_used)
