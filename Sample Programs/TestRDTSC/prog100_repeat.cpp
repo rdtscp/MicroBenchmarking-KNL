@@ -26,7 +26,7 @@ int testL1() {
         L1_DATA[i] = 0;
     }
 
-    uint64_t total;
+    uint64_t total = 0;
     for (int i=0; i < 1000; i++) {
         __asm__ __volatile__ ("rdtscp" : "=a"(start_lo), "=d"(start_hi));
         temp = L1_DATA[0];
