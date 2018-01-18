@@ -1,0 +1,76 @@
+
+Intel(R) Core(TM) i5-4670K CPU @ 3.40GHz
+L1 Cache    32KB
+L2 Cache    256KB
+L3 Cache    6144KB
+
+ --- L1 10 Instructions ---
+        L1 Avg Cycles: 6
+        Cycles for RDTSC: 28
+
+ --- L1 50 Instructions ---
+        L1 Avg Cycles: 1
+        Cycles for RDTSC: 25
+
+ --- L1 100 Instructions ---
+        L1 Avg Cycles: 1
+        Cycles for RDTSC: 2
+
+ --- L1 10 Instructions x 1000 ---
+        L1 Avg Cycles: 5
+        Cycles for RDTSC: 25
+
+ --- L1 50 Instructions x 1000 ---
+        L1 Avg Cycles: 1
+        Cycles for RDTSC: 25
+
+ --- L1 100 Instructions x 1000 ---
+        L1 Avg Cycles: 1
+        Cycles for RDTSC: 2
+
+ --- Stack Overflow ---
+Empty counting takes 78 cycles
+Cache ID 0 has latency 8 cycles
+Cache ID 1 has latency 27 cycles
+Cache ID 2 has latency 39 cycles
+
+---------------------------------------------------------
+
+Intel(R) Xeon(R) CPU           X5550  @ 2.67GHz
+
+32KB    L1 Cache
+256KB   L2 Cache
+8MB     L3 Cache
+
+ --- L1 10 Instructions --- 
+	L1 Avg Cycles: 4
+	Cycles for RDTSC: 24
+
+ --- L1 50 Instructions --- 
+	L1 Avg Cycles: 2
+	Cycles for RDTSC: 35
+
+ --- L1 100 Instructions --- 
+	L1 Avg Cycles: 4
+	Cycles for RDTSC: 2
+
+ --- L1 10 Instructions x 1000 --- 
+	L1 Avg Cycles: 4
+	Cycles for RDTSC: 24
+
+ --- L1 50 Instructions x 1000 --- 
+	L1 Avg Cycles: 1
+	Cycles for RDTSC: 35
+
+ --- L1 100 Instructions x 1000 --- 
+	L1 Avg Cycles: 1
+	Cycles for RDTSC: 3
+
+ --- Stack Overflow ---
+Empty counting takes 62 cycles
+Cache ID 0 has latency 3 cycles
+Cache ID 1 has latency 24 cycles
+Cache ID 2 has latency 33 cycles
+
+---------------------------------------------------------
+
