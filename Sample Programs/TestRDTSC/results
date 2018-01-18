@@ -1,8 +1,8 @@
 
-Intel(R) Core(TM) i5-4670K CPU @ 3.40GHz
-L1 Cache    32KB
-L2 Cache    256KB
-L3 Cache    6144KB
+    Intel(R) Core(TM) i5-4670K CPU @ 3.40GHz
+    L1 Cache    32KB
+    L2 Cache    256KB
+    L3 Cache    6144KB
 
  --- L1 10 Instructions ---
         L1 Avg Cycles: 6
@@ -36,11 +36,11 @@ Cache ID 2 has latency 39 cycles
 
 ---------------------------------------------------------
 
-Intel(R) Xeon(R) CPU           X5550  @ 2.67GHz
+    Intel(R) Xeon(R) CPU           X5550  @ 2.67GHz
 
-32KB    L1 Cache
-256KB   L2 Cache
-8MB     L3 Cache
+    L1 Cache    32KB
+    L2 Cache    256KB
+    L3 Cache    8MB
 
  --- L1 10 Instructions --- 
 	L1 Avg Cycles: 4
@@ -74,3 +74,37 @@ Cache ID 2 has latency 33 cycles
 
 ---------------------------------------------------------
 
+        Intel(R) Core(TM) i5-7360U CPU @ 2.30GHz
+        L1 Cache    32KB
+        L2 Cache    256KB
+        L3 Cache    4MB
+
+ --- L1 10 Instructions ---
+        L1 Avg Cycles: 6
+        Cycles for RDTSC: 42
+
+ --- L1 50 Instructions ---
+        L1 Avg Cycles: 1
+        Cycles for RDTSC: 36
+
+ --- L1 100 Instructions ---
+        L1 Avg Cycles: 1
+        Cycles for RDTSC: 3
+
+ --- L1 10 Instructions x 1000 ---
+        L1 Avg Cycles: 3
+        Cycles for RDTSC: 40
+
+ --- L1 50 Instructions x 1000 ---
+        L1 Avg Cycles: 1
+        Cycles for RDTSC: 34
+
+ --- L1 100 Instructions x 1000 ---
+        L1 Avg Cycles: 0
+        Cycles for RDTSC: 3
+
+ --- Stack Overflow ---
+Empty counting takes 60 cycles
+Cache ID 0 has latency 6 cycles
+Cache ID 1 has latency 22 cycles
+Cache ID 2 has latency 44 cycles
