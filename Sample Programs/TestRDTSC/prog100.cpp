@@ -136,6 +136,9 @@ int testL1() {
 
 int main() {
     int total = 0;
+    printf(" --- L1 100 Instructions --- ");
     printf("\n\tL1 Avg Cycles: %d", testL1());
     printf("\n\tCycles for RDTSC: %d", testTSC());
+
+    printf("\n\n");
 }
