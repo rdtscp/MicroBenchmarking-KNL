@@ -129,7 +129,7 @@ int test_cache(size_t attempts, size_t lower_cache_size, int * latencies, size_t
             "mfence\n\t"        // memory fence
             "mov %4, %%al\n\t"  // load data
             "mfence\n\t"
-            "rdtscp\n\t"
+            "rdtsc\n\t"
             "sub %2, %%edx\n\t" // substract cycle count
             "sbb %3, %%eax"     // substract cycle count
             : "=&a" (cycles_used)
@@ -204,6 +204,7 @@ int main() {
     }
 
     for (i = 0; i < num_data_caches; i++) {
+        printf("\n\t%d", cache_sizes[i]);
         test_cache(attempts, cache_sizes[i] * 4, latencies, sizeof(latencies) / sizeof(*latencies));
 
         int j;
