@@ -204,7 +204,6 @@ int main() {
     }
 
     for (i = 0; i < num_data_caches; i++) {
-        printf("\n\t%d", cache_sizes[i]);
         test_cache(attempts, cache_sizes[i] * 4, latencies, sizeof(latencies) / sizeof(*latencies));
 
         int j;
