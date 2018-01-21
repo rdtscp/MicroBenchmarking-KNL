@@ -138,7 +138,8 @@ int main(int argc, char *argv[]) {
 
         // Calculating overhead, so no instruction to be timed here.
         asm volatile("MFENCE");
-        asm volatile("mov %%eax, %0": "=r"(data)::);
+        //asm volatile("mov %%eax, %0": "=r"(data)::);
+        asm volatile ("PAUSE");        
         // asm volatile("mov %%eax, %0": "=m"(data):: "eax");  // Load the data variable, which will exist in the L1 Cache.
         asm volatile("MFENCE");
 
