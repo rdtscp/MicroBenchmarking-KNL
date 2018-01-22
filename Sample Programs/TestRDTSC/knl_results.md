@@ -1,6 +1,6 @@
 # KNL Results
 
-## Instruction Cycles
+## Instruction Cycles (Using Gabriele Paoloni technique)
 
 LAT | O/Head | L? Load | DIV(29-42) | PAUSE(25) | F2XM1(100-400)
 --- | --- | --- | --- | --- | ---
