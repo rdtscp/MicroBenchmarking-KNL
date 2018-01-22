@@ -7,6 +7,10 @@
 #include <iostream>
 #include <iomanip>
 
+#ifdef __linux__    // Linux only
+    #include <sched.h>  // sched_setaffinity
+#endif
+
 int latencies[500];
 
 void printLatencies() {
@@ -100,6 +104,25 @@ void init() {
 }
 
 int main(int argc, char *argv[]) {
+    #ifdef __linux__
+        int cpuAffinity = argc > 1 ? atoi(argv[1]) : -1;
+
+        if (cpuAffinity > -1)
+        {
+            cpu_set_t mask;
+            int status;
+
+            CPU_ZERO(&mask);
+            CPU_SET(cpuAffinity, &mask);
+            status = sched_setaffinity(0, sizeof(mask), &mask);
+            if (status != 0)
+            {
+                perror("sched_setaffinity");
+            }
+            printf("\n\nSet CPU Affinity to CPU%d\n\n", cpuAffinity);
+        }
+    #endif
+
     uint32_t start_hi, start_lo, end_hi, end_lo;
     uint64_t start, end, diff;
 
