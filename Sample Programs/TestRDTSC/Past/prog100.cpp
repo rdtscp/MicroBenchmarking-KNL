@@ -24,7 +24,7 @@ int testL1() {
     }
 
     __asm__ __volatile__ ("rdtscp" : "=a"(start_lo), "=d"(start_hi));
-        __asm__ __volatile__ ("mfence");
+    __asm__ __volatile__ ("mfence");
 
     temp = L1_DATA[0];
         temp = L1_DATA[1];
@@ -127,7 +127,7 @@ int testL1() {
         temp = L1_DATA[98];
     temp = L1_DATA[99];
     __asm__ __volatile__ ("rdtscp" : "=a"(end_lo), "=d"(end_hi));
-        __asm__ __volatile__ ("mfence");
+    __asm__ __volatile__ ("mfence");
 
 
     // Convert to 64 bit ints.
