@@ -183,20 +183,6 @@ int main(int argc, char *argv[]) {
         
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
-            // asm volatile (                  
-            //     "MFENCE\n\t"
-            //     "RDTSCP\n\t"
-            //     "MFENCE\n\t"
-            //     "mov %%edx, %0\n\t"
-            //     "MFENCE\n\t"
-            //     "mov %%eax, %1\n\t"
-            //     "MFENCE\n\t":
-            //         "=r" (start_hi),
-            //         "=r" (start_lo):
-            //         :"%rax", "%rbx", "%rcx", "%rdx"
-            // );
-            // asm volatile("MFENCE");
-
         // Calculating overhead, so no instruction to be timed here.
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
