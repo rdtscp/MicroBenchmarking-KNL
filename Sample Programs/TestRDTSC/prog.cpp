@@ -119,19 +119,6 @@ inline __attribute__((always_inline)) volatile void end_timestamp(uint32_t *time
     );
 }
 
-std::string occupyCol(int cycles) {
-    std::string output = "";
-    output += std::to_string(cycles);
-    for (int i=output.length(); i < 5; i++) {
-        output += " ";
-    }
-    output +="(";
-    double perc = (double)cycles/10;
-    perc = floor( perc * 100.00 + 0.5 ) / 100.00;
-    return output;
-}
-
-
 int main(int argc, char *argv[]) {
     #ifdef __linux__
         int cpuAffinity = argc > 1 ? atoi(argv[1]) : -1;
@@ -266,15 +253,17 @@ int main(int argc, char *argv[]) {
         double div_perc = (double)div_lat[i] / (double)10;
         std::string cycles;
         if (oh_perc > 1 || l1_perc > 1 || div_perc > 1) {
+            int temp, digits;
             std::cout << "\n";
 
             // Latency Column
-            std::cout << "\t" << std::to_string(i) << "\t|";
+            std::cout << "\t" << i << "\t|";
 
             // Overhead Column
-            cycles = std::to_string(ohead_lat[i]);
-            std::cout << "\t" << cycles;
-            for (int i=cycles.length(); i < 5; i++) {
+            std::cout << "\t" << ohead_lat[i];
+            temp = ohead_lat[i];
+            digits = 0; while (temp != 0) { temp /= 10; digits++; }
+            for (int i=digits; i < 5; i++) {
                 std::cout << " ";
             }
             if (oh_perc > 1) printf("(%.2f%%)", oh_perc);
@@ -282,9 +271,10 @@ int main(int argc, char *argv[]) {
             std::cout << "\t|";
 
             // L1 Load Column
-            cycles = std::to_string(l1_lat[i]);
-            std::cout << "\t" << cycles;
-            for (int i=cycles.length(); i < 5; i++) {
+            std::cout << "\t" << l1_lat[i];
+            temp = l1_lat[i];
+            digits = 0; while (temp != 0) { temp /= 10; digits++; }
+            for (int i=digits; i < 5; i++) {
                 std::cout << " ";
             }
             if (l1_perc > 1) printf("(%.2f%%)", l1_perc);
@@ -292,15 +282,14 @@ int main(int argc, char *argv[]) {
             std::cout << "\t|";
 
             // DIV Column
-            cycles = std::to_string(div_lat[i]);
-            std::cout << "\t" << cycles;
-            for (int i=cycles.length(); i < 5; i++) {
+            std::cout << "\t" << div_lat[i];
+            temp = div_lat[i];
+            digits = 0; while (temp != 0) { temp /= 10; digits++; }
+            for (int i=digits; i < 5; i++) {
                 std::cout << " ";
             }
             if (div_perc > 1) printf("(%.2f%%)", div_perc);
             else printf("      ");
-
-            // printf("\t%d(%.2f%%)\t|\t%d(%.2f%%)\t|\t%d(%.2f%%)", oh_perc, l1_lat[i], l1_perc, div_lat[i], div_perc);
         }
     }
     printf("\n");
