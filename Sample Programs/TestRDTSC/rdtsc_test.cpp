@@ -9,10 +9,11 @@ int latencies[500];
 
 void printLatencies() {
     printf("\n\t\tCycles\t|   Occurrences");
-    printf("\n\t\t--------+------------------");
+    printf("\n\t\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
-        if (latencies[i] > 0) {
-            printf("\n\t\t%d\t|\t%d", i, latencies[i]);
+        double occur_perc = (double)latencies[i] / (double)10000;
+        if (occur_perc > 1) {
+            printf("\n\t\t%d\t|\t%d\t(%.2f%%)", i, latencies[i], occur_perc);
         }
     }
 }
