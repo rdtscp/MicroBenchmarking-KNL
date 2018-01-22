@@ -317,62 +317,90 @@ int main(int argc, char *argv[]) {
             int temp, digits;
             std::cout << "\n";
 
-            // Latency Column
-            std::cout << "\t" << i << "\t|";
+            // STD::COUT
+                // Latency Column
+                std::cout << "\t" << i << "\t|";
 
-            // Overhead Column
-                std::cout << "\t" << ohead_lat[i];
-                temp = ohead_lat[i];
-                digits = 0; while (temp != 0) { temp /= 10; digits++; }
-                for (int i=digits; i < 5; i++) {
-                    std::cout << " ";
-                }
-                if (oh_perc > 1) printf("(%.2f%%)", oh_perc);
-                else printf("      ");
-                std::cout << "\t|";
+                // Overhead Column
+                    std::cout << "\t" << ohead_lat[i];
+                    temp = ohead_lat[i];
+                    digits = 0; while (temp != 0) { temp /= 10; digits++; }
+                    for (int i=digits; i < 5; i++) {
+                        std::cout << " ";
+                    }
+                    if (oh_perc > 1) printf("(%.2f%%)", oh_perc);
+                    else printf("      ");
+                    std::cout << "\t|";
 
-            // L1 Load Column
-                std::cout << "\t" << l1_lat[i];
-                temp = l1_lat[i];
-                digits = 0; while (temp != 0) { temp /= 10; digits++; }
-                for (int i=digits; i < 5; i++) {
-                    std::cout << " ";
-                }
-                if (l1_perc > 1) printf("(%.2f%%)", l1_perc);
-                else printf("      ");
-                std::cout << "\t|";
+                // L1 Load Column
+                    std::cout << "\t" << l1_lat[i];
+                    temp = l1_lat[i];
+                    digits = 0; while (temp != 0) { temp /= 10; digits++; }
+                    for (int i=digits; i < 5; i++) {
+                        std::cout << " ";
+                    }
+                    if (l1_perc > 1) printf("(%.2f%%)", l1_perc);
+                    else printf("      ");
+                    std::cout << "\t|";
 
-            // DIV Column
-                std::cout << "\t" << div_lat[i];
-                temp = div_lat[i];
-                digits = 0; while (temp != 0) { temp /= 10; digits++; }
-                for (int i=digits; i < 5; i++) {
-                    std::cout << " ";
-                }
-                if (div_perc > 1) printf("(%.2f%%)", div_perc);
-                else printf("      ");
-                std::cout << "\t|";
+                // DIV Column
+                    std::cout << "\t" << div_lat[i];
+                    temp = div_lat[i];
+                    digits = 0; while (temp != 0) { temp /= 10; digits++; }
+                    for (int i=digits; i < 5; i++) {
+                        std::cout << " ";
+                    }
+                    if (div_perc > 1) printf("(%.2f%%)", div_perc);
+                    else printf("      ");
+                    std::cout << "\t|";
 
-            // PAUSE Column
-                std::cout << "\t" << pause_lat[i];
-                temp = pause_lat[i];
-                digits = 0; while (temp != 0) { temp /= 10; digits++; }
-                for (int i=digits; i < 5; i++) {
-                    std::cout << " ";
-                }
-                if (pse_perc > 1) printf("(%.2f%%)", pse_perc);
-                else printf("      ");
-                std::cout << "\t|";
+                // PAUSE Column
+                    std::cout << "\t" << pause_lat[i];
+                    temp = pause_lat[i];
+                    digits = 0; while (temp != 0) { temp /= 10; digits++; }
+                    for (int i=digits; i < 5; i++) {
+                        std::cout << " ";
+                    }
+                    if (pse_perc > 1) printf("(%.2f%%)", pse_perc);
+                    else printf("      ");
+                    std::cout << "\t|";
 
-            // F2XM1 Column
-                std::cout << "\t" << f2xm1_lat[i];
-                temp = f2xm1_lat[i];
-                digits = 0; while (temp != 0) { temp /= 10; digits++; }
-                for (int i=digits; i < 5; i++) {
-                    std::cout << " ";
-                }
-                if (f2xm1_perc > 1) printf("(%.2f%%)", f2xm1_perc);
-                else printf("      ");
+                // F2XM1 Column
+                    std::cout << "\t" << f2xm1_lat[i];
+                    temp = f2xm1_lat[i];
+                    digits = 0; while (temp != 0) { temp /= 10; digits++; }
+                    for (int i=digits; i < 5; i++) {
+                        std::cout << " ";
+                    }
+                    if (f2xm1_perc > 1) printf("(%.2f%%)", f2xm1_perc);
+                    else printf("      ");
+        }
+    }
+    std::cerr << "\n\n\n\n --- Markdown Table ---\n\n";
+    std::cerr << "\nLAT | O/Head | L? Load | DIV(29-42) | PAUSE(25) | F2XM1(100-400)";
+    std::cerr << "\n--- | --- | --- | --- | --- | ---";
+    for (int i=0; i < 500; i++) {
+        double oh_perc      = (double)ohead_lat[i] / (double)10;
+        double l1_perc      = (double)l1_lat[i]    / (double)10;
+        double div_perc     = (double)div_lat[i]   / (double)10;
+        double pse_perc     = (double)pause_lat[i] / (double)10;
+        double f2xm1_perc   = (double)f2xm1_lat[i] / (double)10;
+        std::string cycles;
+        if (oh_perc > 1 || l1_perc > 1 || div_perc > 1 || pse_perc > 1 || f2xm1_perc > 1) {
+            int temp, digits;
+            // STD::CERR
+            std::cerr << "\n" << i;
+            std::cerr << " | " << ohead_lat[i];
+            if (oh_perc > 1) fprintf(stderr, "(%.2f%%)", oh_perc);
+            std::cerr << " | " << l1_lat[i];
+            if (l1_perc > 1) fprintf(stderr, "(%.2f%%)", l1_perc);
+            std::cerr << " | " << div_lat[i];
+            if (div_perc > 1) fprintf(stderr, "(%.2f%%)", div_perc);
+            std::cerr << " | " << pause_lat[i];
+            if (pse_perc > 1) fprintf(stderr, "(%.2f%%)", pse_perc);
+            std::cerr << " | " << f2xm1_lat[i];
+            if (f2xm1_perc > 1) fprintf(stderr, "(%.2f%%)", f2xm1_perc);
+            
         }
     }
     printf("\n");
