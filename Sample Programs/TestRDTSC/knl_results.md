@@ -1,6 +1,6 @@
 # KNL Results
 
-## Instruction Cycles (Using Gabriele Paoloni technique)
+## Instruction Cycles (Using Gabriele Paoloni technique) [Source](https://github.com/acwilson96/MicroBenchmarking-KNL/blob/master/Sample%20Programs/TestRDTSC/prog.cpp)
 
 LAT | O/Head | L? Load | DIV(29-42) | PAUSE(25) | F2XM1(100-400)
 --- | --- | --- | --- | --- | ---
@@ -17,7 +17,7 @@ LAT | O/Head | L? Load | DIV(29-42) | PAUSE(25) | F2XM1(100-400)
 429 | 0 | 0 | 0 | 0 | 32(3.20%)
 442 | 0 | 0 | 0 | 0 | 26(2.60%)
 
-## Timing Methods
+## Timing Methods [Source](https://github.com/acwilson96/MicroBenchmarking-KNL/blob/master/Sample%20Programs/TestRDTSC/rdtsc_test.cpp)
 
 ### BenchIT Approach
 
