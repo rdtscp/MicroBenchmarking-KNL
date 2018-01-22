@@ -3,6 +3,10 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <cstring>
+#include <string>
+#include <math.h>
+#include <iostream>
+#include <iomanip>
 
 #ifdef __linux__    // Linux only
 #include <sched.h>  // sched_setaffinity
@@ -115,6 +119,17 @@ inline __attribute__((always_inline)) volatile void end_timestamp(uint32_t *time
     );
 }
 
+std::string occupyCol(int cycles) {
+    std::string output = "";
+    output += std::to_string(cycles);
+    for (int i=output.length(); i < 5; i++) {
+        output += " ";
+    }
+    output +="(";
+    double perc = (double)cycles/10;
+    perc = floor( perc * 100.00 + 0.5 ) / 100.00;
+    return output;
+}
 
 
 int main(int argc, char *argv[]) {
@@ -243,15 +258,49 @@ int main(int argc, char *argv[]) {
     }
 
     // Output results
-    printf("\n\tLAT\t|\tO/Head\t\t|\tL1 Load\t\t|\t  DIV");
-    printf("\n\t--------+-----------------------+-----------------------+-----------------");
+    printf("\n\tLAT\t|\tO/Head\t\t|\tL1 Load\t\t|\tDIV Inst");
+    printf("\n\t--------+-----------------------+-----------------------+---------------------");
     for (int i=0; i < 500; i++) {
         double oh_perc = (double)ohead_lat[i] / (double)10;
         double l1_perc = (double)l1_lat[i] / (double)10;
         double div_perc = (double)div_lat[i] / (double)10;
+        std::string cycles;
         if (oh_perc > 1 || l1_perc > 1 || div_perc > 1) {
-            printf("\n");
-            printf("\t%d\t|\t%d(%.2f%%)\t|\t%d(%.2f%%)\t|\t%d(%.2f%%)", i, ohead_lat[i], oh_perc, l1_lat[i], l1_perc, div_lat[i], div_perc);
+            std::cout << "\n";
+
+            // Latency Column
+            std::cout << "\t" << std::to_string(i) << "\t|";
+
+            // Overhead Column
+            cycles = std::to_string(ohead_lat[i]);
+            std::cout << "\t" << cycles;
+            for (int i=cycles.length(); i < 5; i++) {
+                std::cout << " ";
+            }
+            if (oh_perc > 1) printf("(%.2f%%)", oh_perc);
+            else printf("      ");
+            std::cout << "\t|";
+
+            // L1 Load Column
+            cycles = std::to_string(l1_lat[i]);
+            std::cout << "\t" << cycles;
+            for (int i=cycles.length(); i < 5; i++) {
+                std::cout << " ";
+            }
+            if (l1_perc > 1) printf("(%.2f%%)", l1_perc);
+            else printf("      ");
+            std::cout << "\t|";
+
+            // DIV Column
+            cycles = std::to_string(div_lat[i]);
+            std::cout << "\t" << cycles;
+            for (int i=cycles.length(); i < 5; i++) {
+                std::cout << " ";
+            }
+            if (div_perc > 1) printf("(%.2f%%)", div_perc);
+            else printf("      ");
+
+            // printf("\t%d(%.2f%%)\t|\t%d(%.2f%%)\t|\t%d(%.2f%%)", oh_perc, l1_lat[i], l1_perc, div_lat[i], div_perc);
         }
     }
     printf("\n");
