@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <cstring>
 #include <map>
+#include <iostream>
+#include <iomanip>
 
 int latencies[500];
 
@@ -14,6 +16,15 @@ void printLatencies() {
         double occur_perc = (double)latencies[i] / (double)10000;
         if (occur_perc > 1) {
             printf("\n\t\t%d\t|\t%d\t(%.2f%%)", i, latencies[i], occur_perc);
+        }
+    }
+    std::cerr << "\n\n\n --- Markdown Table ---\n\n";
+    std::cerr << "\nCycles | Occurrences";
+    std::cerr << "\n--- | ---";
+    for (int i=0; i < 500; i++) {
+        double occur_perc = (double)latencies[i] / (double)10000;
+        if (occur_perc > 1) {
+            fprintf(stderr, "\n%d | %d (%.2f%%)", i, latencies[i], occur_perc);
         }
     }
 }
