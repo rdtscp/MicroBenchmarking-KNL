@@ -1,0 +1,221 @@
+s1421803@login:/work/knl-users/s1421803/Test/SanityTests> cat out_curr.o31552
+
+
+Set CPU Affinity to CPU0
+
+
+Cold Miss Global Array Latency: 9061
+
+Hit Global Array Latency: 39
+
+Cold Miss Global Var Latency: 52
+
+Hit Global Var Latency: 52
+
+Cold Miss Local Array Latency: 52
+
+Hit Local Array Latency: 52
+
+Cold Miss Local Var Latency: 52
+
+Hit Local Var Latency: 52
+
+Application 100698 resources: utime ~0s, stime ~1s, Rss ~5596, inblocks ~0, outblocks ~0
+
+
+Set CPU Affinity to CPU0
+
+
+Cold Miss Global Array Latency: 9178
+
+Hit Global Array Latency: 52
+
+Cold Miss Global Var Latency: 52
+
+Hit Global Var Latency: 52
+
+Cold Miss Local Array Latency: 52
+
+Hit Local Array Latency: 52
+
+Cold Miss Local Var Latency: 52
+
+Hit Local Var Latency: 78
+
+Application 100699 resources: utime ~0s, stime ~1s, Rss ~5596, inblocks ~0, outblocks ~0
+
+
+Set CPU Affinity to CPU0
+
+
+Cold Miss Global Array Latency: 9152
+
+Hit Global Array Latency: 52
+
+Cold Miss Global Var Latency: 52
+
+Hit Global Var Latency: 52
+
+Cold Miss Local Array Latency: 52
+
+Hit Local Array Latency: 52
+
+Cold Miss Local Var Latency: 52
+
+Hit Local Var Latency: 52
+
+Application 100700 resources: utime ~0s, stime ~1s, Rss ~5596, inblocks ~0, outblocks ~0
+
+
+Set CPU Affinity to CPU0
+
+
+Cold Miss Global Array Latency: 11921
+
+Hit Global Array Latency: 52
+
+Cold Miss Global Var Latency: 52
+
+Hit Global Var Latency: 52
+
+Cold Miss Local Array Latency: 52
+
+Hit Local Array Latency: 65
+
+Cold Miss Local Var Latency: 52
+
+Hit Local Var Latency: 52
+
+Application 100701 resources: utime ~0s, stime ~1s, Rss ~5596, inblocks ~0, outblocks ~0
+
+
+Set CPU Affinity to CPU0
+
+
+Cold Miss Global Array Latency: 12181
+
+Hit Global Array Latency: 52
+
+Cold Miss Global Var Latency: 52
+
+Hit Global Var Latency: 52
+
+Cold Miss Local Array Latency: 52
+
+Hit Local Array Latency: 52
+
+Cold Miss Local Var Latency: 52
+
+Hit Local Var Latency: 52
+
+Application 100702 resources: utime ~0s, stime ~1s, Rss ~5596, inblocks ~0, outblocks ~0
+
+
+Set CPU Affinity to CPU0
+
+
+Cold Miss Global Array Latency: 9711
+
+Hit Global Array Latency: 52
+
+Cold Miss Global Var Latency: 52
+
+Hit Global Var Latency: 52
+
+Cold Miss Local Array Latency: 52
+
+Hit Local Array Latency: 52
+
+Cold Miss Local Var Latency: 52
+
+Hit Local Var Latency: 52
+
+Application 100703 resources: utime ~0s, stime ~1s, Rss ~5596, inblocks ~0, outblocks ~0
+
+
+Set CPU Affinity to CPU0
+
+
+Cold Miss Global Array Latency: 9737
+
+Hit Global Array Latency: 52
+
+Cold Miss Global Var Latency: 52
+
+Hit Global Var Latency: 52
+
+Cold Miss Local Array Latency: 52
+
+Hit Local Array Latency: 52
+
+Cold Miss Local Var Latency: 52
+
+Hit Local Var Latency: 91
+
+Application 100704 resources: utime ~0s, stime ~1s, Rss ~5596, inblocks ~0, outblocks ~0
+
+
+Set CPU Affinity to CPU0
+
+
+Cold Miss Global Array Latency: 10894
+
+Hit Global Array Latency: 52
+
+Cold Miss Global Var Latency: 52
+
+Hit Global Var Latency: 52
+
+Cold Miss Local Array Latency: 52
+
+Hit Local Array Latency: 52
+
+Cold Miss Local Var Latency: 52
+
+Hit Local Var Latency: 52
+
+Application 100705 resources: utime ~0s, stime ~1s, Rss ~5596, inblocks ~0, outblocks ~0
+
+
+Set CPU Affinity to CPU0
+
+
+Cold Miss Global Array Latency: 12103
+
+Hit Global Array Latency: 52
+
+Cold Miss Global Var Latency: 52
+
+Hit Global Var Latency: 52
+
+Cold Miss Local Array Latency: 52
+
+Hit Local Array Latency: 52
+
+Cold Miss Local Var Latency: 39
+
+Hit Local Var Latency: 52
+
+Application 100706 resources: utime ~0s, stime ~1s, Rss ~5596, inblocks ~0, outblocks ~0
+
+
+Set CPU Affinity to CPU0
+
+
+Cold Miss Global Array Latency: 8840
+
+Hit Global Array Latency: 52
+
+Cold Miss Global Var Latency: 52
+
+Hit Global Var Latency: 52
+
+Cold Miss Local Array Latency: 65
+
+Hit Local Array Latency: 52
+
+Cold Miss Local Var Latency: 52
+
+Hit Local Var Latency: 52
+
+Application 100707 resources: utime ~0s, stime ~1s, Rss ~5596, inblocks ~0, outblocks ~0
