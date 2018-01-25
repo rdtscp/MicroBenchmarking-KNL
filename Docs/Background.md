@@ -13,7 +13,7 @@ A single __Tile__ has:
 * __2 x CPU Cores:__
   * 32KB L1 Instruction Cache
   * 32KB L1 Data Cache
-  * 512B/64B Cache Line
+  * 64B Cache Line
 * __1 x L2 Cache:__
   * __1MB__ __=>__ _Configurable as_ __Private 512KB/Core__ _or_ __Shared 1MB__
   * __16-Way__ __=>-__ _i.e. 1MB split into_ __16 x 64B blocks/sets.__
