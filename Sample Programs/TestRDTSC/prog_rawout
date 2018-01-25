@@ -1,85 +1,94 @@
 Set CPU Affinity to CPU0
 
-Timing L2 Load Anomaly: 19162 Cycles
-    Timing L2 Load Anomaly: 16094 Cycles
-    Timing L2 Load Anomaly: 15860 Cycles
-    Timing L2 Load Anomaly: 12623 Cycles
-    Timing L2 Load Anomaly: 13806 Cycles
-    Timing L2 Load Anomaly: 19539 Cycles
-Timing L2 Load Anomaly: 12285 Cycles
-Timing MEM Load Anomaly: 21658 Cycles
-    Timing MEM Load Anomaly: 26936 Cycles
-    Timing MEM Load Anomaly: 21359 Cycles
-    Timing MEM Load Anomaly: 18278 Cycles
-    Timing MEM Load Anomaly: 17420 Cycles
-    Timing MEM Load Anomaly: 17472 Cycles
-    Timing MEM Load Anomaly: 16042 Cycles
-    Timing MEM Load Anomaly: 17212 Cycles
-    Timing MEM Load Anomaly: 16952 Cycles
-Timing MEM Load Anomaly: 18382 Cycles
-Timing MEM Load Anomaly: 533 Cycles
-Timing MEM Load Anomaly: 25636 Cycles
-    Timing MEM Load Anomaly: 16458 Cycles
-    Timing MEM Load Anomaly: 24297 Cycles
-    Timing MEM Load Anomaly: 14495 Cycles
-    Timing MEM Load Anomaly: 14781 Cycles
-    Timing MEM Load Anomaly: 32604 Cycles
-    Timing MEM Load Anomaly: 23985 Cycles
-    Timing MEM Load Anomaly: 21671 Cycles
-    Timing MEM Load Anomaly: 20566 Cycles
-    Timing MEM Load Anomaly: 19305 Cycles
-    Timing MEM Load Anomaly: 17745 Cycles
-    Timing MEM Load Anomaly: 17095 Cycles
-    Timing MEM Load Anomaly: 16562 Cycles
-    Timing MEM Load Anomaly: 20358 Cycles
-    Timing MEM Load Anomaly: 25675 Cycles
-    Timing MEM Load Anomaly: 17927 Cycles
-    Timing MEM Load Anomaly: 26195 Cycles
-    Timing MEM Load Anomaly: 14846 Cycles
-    Timing MEM Load Anomaly: 16926 Cycles
-    Timing MEM Load Anomaly: 16666 Cycles
-    Timing MEM Load Anomaly: 14833 Cycles
-    Timing MEM Load Anomaly: 13481 Cycles
-    Timing MEM Load Anomaly: 13598 Cycles
-    Timing MEM Load Anomaly: 18226 Cycles
-    Timing MEM Load Anomaly: 15743 Cycles
-    Timing MEM Load Anomaly: 16796 Cycles
-    Timing MEM Load Anomaly: 15912 Cycles
-    Timing MEM Load Anomaly: 14365 Cycles
-    Timing MEM Load Anomaly: 15262 Cycles
-    Timing MEM Load Anomaly: 13208 Cycles
-    Timing MEM Load Anomaly: 21944 Cycles
-    Timing MEM Load Anomaly: 15028 Cycles
-    Timing MEM Load Anomaly: 14599 Cycles
-    Timing MEM Load Anomaly: 15028 Cycles
-    Timing MEM Load Anomaly: 13624 Cycles
-    Timing MEM Load Anomaly: 14391 Cycles
-    Timing MEM Load Anomaly: 12909 Cycles
-    Timing MEM Load Anomaly: 12272 Cycles
-    Timing MEM Load Anomaly: 12831 Cycles
-    Timing MEM Load Anomaly: 11544 Cycles
-    Timing MEM Load Anomaly: 11908 Cycles
-    Timing MEM Load Anomaly: 11401 Cycles
-    Timing MEM Load Anomaly: 11687 Cycles
-    Timing MEM Load Anomaly: 11505 Cycles
-    Timing MEM Load Anomaly: 20878 Cycles
-    Timing MEM Load Anomaly: 22581 Cycles
-    Timing MEM Load Anomaly: 13754 Cycles
-    Timing MEM Load Anomaly: 11973 Cycles
-    Timing MEM Load Anomaly: 11999 Cycles
-    Timing MEM Load Anomaly: 12246 Cycles
-Timing MEM Load Anomaly: 12285 Cycles
-Timing MEM Load Anomaly: 663 Cycles
-Timing MEM Load Anomaly: 689 Cycles
 
-
-
-    LAT	    |	    O/Head		    |	    L1 Load		    |	    L2 Load		    |	    Mem Load	    |	    DIV(29-42)	    |	    PAUSE(25)	
+Timing L2 Load Anomaly: 27456 Cycles
+Timing L2 Load Anomaly: 19630 Cycles
+Timing L2 Load Anomaly: 858 Cycles
+Timing L2 Load Anomaly: 19370 Cycles
+Timing L2 Load Anomaly: 21073 Cycles
+Timing L2 Load Anomaly: 18434 Cycles
+Timing L2 Load Anomaly: 17277 Cycles
+Timing L2 Load Anomaly: 14807 Cycles
+Timing MEM Load Anomaly: 39169 Cycles
+Timing MEM Load Anomaly: 48698 Cycles
+Timing MEM Load Anomaly: 33280 Cycles
+Timing MEM Load Anomaly: 45968 Cycles
+Timing MEM Load Anomaly: 35958 Cycles
+Timing MEM Load Anomaly: 35516 Cycles
+Timing MEM Load Anomaly: 42783 Cycles
+Timing MEM Load Anomaly: 34827 Cycles
+Timing MEM Load Anomaly: 34476 Cycles
+Timing MEM Load Anomaly: 35217 Cycles
+Timing MEM Load Anomaly: 34814 Cycles
+Timing MEM Load Anomaly: 32578 Cycles
+Timing MEM Load Anomaly: 34684 Cycles
+Timing MEM Load Anomaly: 33839 Cycles
+Timing MEM Load Anomaly: 34619 Cycles
+Timing MEM Load Anomaly: 31863 Cycles
+Timing MEM Load Anomaly: 32929 Cycles
+Timing MEM Load Anomaly: 46761 Cycles
+Timing MEM Load Anomaly: 34242 Cycles
+Timing MEM Load Anomaly: 36413 Cycles
+Timing MEM Load Anomaly: 32461 Cycles
+Timing MEM Load Anomaly: 34307 Cycles
+Timing MEM Load Anomaly: 35178 Cycles
+Timing MEM Load Anomaly: 35347 Cycles
+Timing MEM Load Anomaly: 36855 Cycles
+Timing MEM Load Anomaly: 32188 Cycles
+Timing MEM Load Anomaly: 34541 Cycles
+Timing MEM Load Anomaly: 35100 Cycles
+Timing MEM Load Anomaly: 34268 Cycles
+Timing MEM Load Anomaly: 34970 Cycles
+Timing MEM Load Anomaly: 34853 Cycles
+Timing MEM Load Anomaly: 45643 Cycles
+Timing MEM Load Anomaly: 34463 Cycles
+Timing MEM Load Anomaly: 35217 Cycles
+Timing MEM Load Anomaly: 34463 Cycles
+Timing MEM Load Anomaly: 35100 Cycles
+Timing MEM Load Anomaly: 33098 Cycles
+Timing MEM Load Anomaly: 42809 Cycles
+Timing MEM Load Anomaly: 33865 Cycles
+Timing MEM Load Anomaly: 35607 Cycles
+Timing MEM Load Anomaly: 34944 Cycles
+Timing MEM Load Anomaly: 32682 Cycles
+Timing MEM Load Anomaly: 35100 Cycles
+Timing MEM Load Anomaly: 32786 Cycles
+Timing MEM Load Anomaly: 36673 Cycles
+Timing MEM Load Anomaly: 45578 Cycles
+Timing MEM Load Anomaly: 34307 Cycles
+Timing MEM Load Anomaly: 33150 Cycles
+Timing MEM Load Anomaly: 32890 Cycles
+Timing MEM Load Anomaly: 31785 Cycles
+Timing MEM Load Anomaly: 34008 Cycles
+Timing MEM Load Anomaly: 34970 Cycles
+Timing MEM Load Anomaly: 33995 Cycles
+Timing MEM Load Anomaly: 34255 Cycles
+Timing MEM Load Anomaly: 35438 Cycles
+Timing MEM Load Anomaly: 33774 Cycles
+Timing MEM Load Anomaly: 32786 Cycles
+Timing MEM Load Anomaly: 34476 Cycles
+Timing MEM Load Anomaly: 34411 Cycles
+Timing MEM Load Anomaly: 46540 Cycles
+Timing MEM Load Anomaly: 34437 Cycles
+	LAT	    |	    O/Head		    |	    L1 Load		    |	    L2 Load		    |	    Mem Load	    |	    DIV(29-42)	    |	PAUSE(25)	
 	--------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------
-	39	    |	    993  (99.30%)	|	    780  (78.00%)	|	    57   (5.70%)	|	    0           	|	    0           	|	    0           	
-	52	    |	    7          	    |	    219  (21.90%)	|	    848  (84.80%)	|	    118  (11.80%)	|	    0           	|	    215  (21.50%)	
-	65	    |	    0           	|	    1          	    |	    64   (6.40%)	|	    680  (68.00%)	|	    148  (14.80%)	|	    784  (78.40%)	
-	78	    |	    0           	|	    0           	|	    6          	    |	    6          	    |	    852  (85.20%)	|	    1          	
-	143	    |	    0           	|	    0           	|	    1          	    |	    48   (4.80%)	|	    0           	|	    0           	
-	156	    |	    0           	|	    0           	|	    1          	    |	    42   (4.20%)	|	    0           	|	    0           	
-
+	39	    |	    939  (93.90%)	|	    786  (78.60%)	|	76   (7.60%)	    |	    0           	|	    0           	|	0           	
+	52	    |	    61   (6.10%)	|	    212  (21.20%)	|	820  (82.00%)	    |	    0           	|	    0           	|	202  (20.20%)	
+	65	    |	    0           	|	    2          	    |	60   (6.00%)	    |	    0           	|	    144  (14.40%)	|	797  (79.70%)	
+	78	    |	    0           	|	    0           	|	6               	|	    0           	|	    854  (85.40%)	|	1          	
+	91	    |	    0           	|	    0           	|	17   (1.70%)    	|	    0           	|	    1          	    |	0           	
+	208	    |	    0           	|	    0           	|	0                 	|	    18   (1.80%)	|	    0           	|	0           	
+	221	    |	    0           	|	    0           	|	0               	|	    50   (5.00%)	|	    0           	|	0           	
+	234	    |	    0           	|	    0           	|	1               	|	    24   (2.40%)	|	    0           	|	0           	
+	364	    |	    0           	|	    0           	|	0               	|	    76   (7.60%)	|	    0           	|	0           	
+	377	    |	    0           	|	    0           	|	0                   |	    155  (15.50%)	|	    0           	|	0           	
+	390	    |	    0           	|	    0           	|	0                 	|	    129  (12.90%)	|	    0           	|	0           	
+	403	    |	    0           	|	    0           	|	0           	    |	    19   (1.90%)	|	    0           	|	0           	
+	520	    |	    0           	|	    0           	|	0           	    |	    13   (1.30%)	|	    0           	|	0           	
+	533	    |	    0           	|	    0           	|	0           	    |	    23   (2.30%)	|	    0           	|	0           	
+	884	    |	    0           	|	    0           	|	0           	    |	    11   (1.10%)	|	    0           	|	0           	
+	897	    |	    0           	|	    0           	|	0           	    |	    63   (6.30%)	|	    0           	|	0           	
+	910	    |	    0           	|	    0           	|	0           	    |	    114  (11.40%)	|	    0           	|	0           	
+	923	    |	    0           	|	    0           	|	0           	    |	    59   (5.90%)	|	    0           	|	0           	
+	1053	|	    0           	|	    0           	|	0           	    |	    11   (1.10%)	|	    0           	|	0           	
+	1066	|	    0           	|	    0           	|	0           	    |	    18   (1.80%)	|	    0           	|	0           	
