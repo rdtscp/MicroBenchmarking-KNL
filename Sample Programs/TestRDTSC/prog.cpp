@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
         int l2_lat[500];                                        // i'th element of array indicates how many times an L1 Load took i cycles.
         memset(l2_lat, 0, sizeof(l2_lat));                      // Initialise count of overhead latencies to 0.
 
-        int mem_lat[500];                                       // i'th element of array indicates how many times an L1 Load took i cycles.
+        int mem_lat[10000];                                       // i'th element of array indicates how many times an L1 Load took i cycles.
         memset(mem_lat, 0, sizeof(mem_lat));                    // Initialise count of overhead latencies to 0.
 
         int pause_lat[500];                                     // i'th element of array indicates how many times a PAUSE took i cycles.
@@ -299,6 +299,7 @@ int main(int argc, char *argv[]) {
 
         flushCache(L1_SIZE, L1_LINE_SIZE, L1_SET_SIZE);     // Flush the L1 Cache.
         flushCache(L2_SIZE, L2_LINE_SIZE, L2_SET_SIZE);     // Flush the L2 Cache.
+        flushCache(L2_SIZE * 36, L2_LINE_SIZE, L2_SET_SIZE);     // Flush the L2 Cache.
         
         warmup();                                           // Warmup timing instructions.
 
@@ -308,7 +309,9 @@ int main(int argc, char *argv[]) {
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
         // Load the data variable, which will exist in the L1 Cache.
+        asm volatile("MFENCE");
         asm volatile("#Load Inst\n\tmov %%eax, %0": "=m"(mem_data[mem_idx]):: "eax", "memory");
+        asm volatile("MFENCE");        
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
@@ -317,7 +320,7 @@ int main(int argc, char *argv[]) {
           end     = ( ((uint64_t)end_hi << 32) | end_lo );
         latency = (end - start);
 
-        if (latency < 500) mem_lat[latency]++;               // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
+        if (latency < 10000) mem_lat[latency]++;               // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
         else printf("\nTiming MEM Load Anomaly: %lli Cycles", latency);
 
         mem_idx += ((rand()%10) * MEM_STRIDE)%(MEM_SIZE/4);  // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
@@ -408,13 +411,16 @@ int main(int argc, char *argv[]) {
     // Output results
     printf("\n\tLAT\t|\tO/Head\t\t|\tL1 Load\t\t|\tL2 Load\t\t|\tMem Load\t|\tDIV(29-42)\t|\tPAUSE(25)\t");
     printf("\n\t--------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------");
-    for (int i=0; i < 500; i++) {
+    for (int i=0; i < 10000; i++) {
         double oh_perc      = (double)ohead_lat[i] / (double)10;
         double l1_perc      = (double)l1_lat[i]    / (double)10;
         double l2_perc      = (double)l2_lat[i]    / (double)10;
         double mem_perc     = (double)mem_lat[i]   / (double)10;
         double div_perc     = (double)div_lat[i]   / (double)10;
         double pse_perc     = (double)pause_lat[i] / (double)10;
+        if (i >= 500) {
+            oh_perc = 0; l1_perc = 0; l2_perc = 0; div_perc = 0; pse_perc = 0;
+        }
         std::string cycles;
         if (oh_perc > 1 || l1_perc > 1 || l2_perc > 1 || mem_perc > 1 || div_perc > 1 || pse_perc > 1) {
             int temp, digits;
@@ -492,13 +498,16 @@ int main(int argc, char *argv[]) {
     std::cerr << "\n\n\n\n --- Markdown Table ---\n\n";
     std::cerr << "\nLAT | O/Head | L1 Load | L2 Load | Mem Load | DIV(29-42) | PAUSE(25)";
     std::cerr << "\n--- | --- | --- | --- | --- | --- | ---";
-    for (int i=0; i < 500; i++) {
+    for (int i=0; i < 10000; i++) {
         double oh_perc      = (double)ohead_lat[i] / (double)10;
         double l1_perc      = (double)l1_lat[i]    / (double)10;
         double l2_perc      = (double)l2_lat[i]    / (double)10;
         double mem_perc     = (double)mem_lat[i]   / (double)10;
         double div_perc     = (double)div_lat[i]   / (double)10;
         double pse_perc     = (double)pause_lat[i] / (double)10;
+        if (i >= 500) {
+            oh_perc = 0; l1_perc = 0; l2_perc = 0; div_perc = 0; pse_perc = 0;
+        }
         std::string cycles;
         if (oh_perc > 1 || l1_perc > 1 || l2_perc > 1 || mem_perc > 1 || div_perc > 1 || pse_perc > 1) {
             int temp, digits;
@@ -510,9 +519,9 @@ int main(int argc, char *argv[]) {
             if (l1_perc > 1) fprintf(stderr, "(%.2f%%)", l1_perc);
             std::cerr << " | " << l2_lat[i];
             if (l2_perc > 1) fprintf(stderr, "(%.2f%%)", l2_perc);
-            std::cerr << " | " << div_lat[i];
-            if (mem_perc > 1) fprintf(stderr, "(%.2f%%)", mem_perc);
             std::cerr << " | " << mem_lat[i];
+            if (mem_perc > 1) fprintf(stderr, "(%.2f%%)", mem_perc);
+            std::cerr << " | " << div_lat[i];
             if (div_perc > 1) fprintf(stderr, "(%.2f%%)", div_perc);
             std::cerr << " | " << pause_lat[i];
             if (pse_perc > 1) fprintf(stderr, "(%.2f%%)", pse_perc);
