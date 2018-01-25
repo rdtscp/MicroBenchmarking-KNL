@@ -1,0 +1,19 @@
+asm volatile ("#Declaring: volatile int a;");
+volatile int a;
+asm volatile ("#Declared : volatile int a;");
+==> Does NOT generate any instructions.
+
+asm volatile ("#Declaring: int b;");
+int b;
+asm volatile ("#Declared : int b;");
+==> Does NOT generate any instructions.
+
+asm volatile ("#Declaring: volatile int c;");
+volatile int c = 1337;
+asm volatile ("#Declared : volatile int c;");
+==> DOES generate instructions.
+
+asm volatile ("#Declaring: int d;");
+int d = 666;
+asm volatile ("#Declared : int d;");
+==> DOES generate instructions.
