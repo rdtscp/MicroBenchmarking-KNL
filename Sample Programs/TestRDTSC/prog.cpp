@@ -212,6 +212,7 @@ void runLatencies(int argc, char *argv[]) {
     warmup();                                           // Warmup timing instructions.
 
         int stack_data[L2_SIZE/4];
+        idx = rand()%(L2_SIZE/4);
         start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
         end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
 
@@ -219,7 +220,7 @@ void runLatencies(int argc, char *argv[]) {
         start_timestamp(&start_hi, &start_lo);
         // Load the data variable, which will exist in the L1 Cache.
         asm volatile("MFENCE");
-        asm volatile("#Load Inst\n\tmov %%eax, %0": "=m"(stack_data[0]):: "eax", "memory");
+        asm volatile("#Load Inst\n\tmov %%eax, %0": "=m"(stack_data[idx]):: "eax", "memory");
         asm volatile("MFENCE");        
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
@@ -230,6 +231,7 @@ void runLatencies(int argc, char *argv[]) {
         latency = (end - start);
         printf("\nStack Read: %d\n", latency);
 
+        idx = rand()%(L2_SIZE/4);
         start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
         end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
 
@@ -237,7 +239,7 @@ void runLatencies(int argc, char *argv[]) {
         start_timestamp(&start_hi, &start_lo);
         // Load the data variable, which will exist in the L1 Cache.
         asm volatile("MFENCE");
-        asm volatile("#Load Inst\n\tmov %%eax, %0": "=m"(heap_data[0]):: "eax", "memory");
+        asm volatile("#Load Inst\n\tmov %%eax, %0": "=m"(heap_data[idx]):: "eax", "memory");
         asm volatile("MFENCE");        
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
@@ -367,6 +369,7 @@ void runLatencies(int argc, char *argv[]) {
         latency = (end - start);
 
         if (latency < 500) mem_lat[latency]++;            // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
+
 
         idx += ((rand()%10) * MEM_STRIDE);                  // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
         idx = idx%(MEM_SIZE/4);
