@@ -13,10 +13,10 @@
     #include <sched.h>  // sched_setaffinity
 #endif
 
-const uint64_t MEM_SIZE  = 262144;
-const int MEM_LINE_SIZE  = 64;
-const int MEM_SET_SIZE   = 16;
-const int MEM_STRIDE     = 16;
+const int MEM_SIZE      = 262144;
+const int MEM_LINE_SIZE = 64;
+const int MEM_SET_SIZE  = 16;
+const int MEM_STRIDE    = 16;
 
 const int L2_SIZE       = 262144;
 const int L2_LINE_SIZE  = 64;
@@ -357,9 +357,9 @@ void latencyMEM() {
     // Do 1000 test runs of timing a MEM Load.
     printf("\n\n\nTesting Memory\n");
     latency = 0;
-    int mem_data[MEM_SIZE/4];                                // Data to load.
-    int mem_idx = 0;                                         // What to load next.
-    for (int i=0; i < 1000; i++) {
+    int mem_data[L2_SIZE/4];                                // Data to load.
+    int mem_idx = 0;                                        // What to load next.
+    // for (int i=0; i < 1000; i++) {
 
         flushCache(L1_SIZE, L1_LINE_SIZE, L1_SET_SIZE);     // Flush the L1 Cache.
         flushCache(L2_SIZE, L2_LINE_SIZE, L2_SET_SIZE);     // Flush the L2 Cache.
@@ -383,18 +383,18 @@ void latencyMEM() {
           end     = ( ((uint64_t)end_hi << 32) | end_lo );
         latency = (end - start);
 
-        if (latency < 500) latencies[latency]++;               // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
+        if (latency < 500) latencies[latency]++;            // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
 
-        mem_idx += ((rand()%10) * MEM_STRIDE);                  // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
+        mem_idx += ((rand()%10) * MEM_STRIDE);              // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
         mem_idx = mem_idx%(L2_SIZE/4);
-    }
+    // }
 
     printf("\n\tLAT\t|\tMemory Hit");
     printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc      = (double)latencies[i] / (double)10;
         std::string cycles;
-        if (perc > 1) {
+        if (perc > 0) {
             int temp, digits;
             std::cout << "\n";
 
@@ -582,51 +582,12 @@ void runLatencies(int argc, char *argv[]) {
         }
     #endif
 
-    warmup();
     latencyOverhead();
-
-    warmup();
     latencyL1();
-    
-    warmup();
     latencyL2();
-
-    warmup();
     latencyMEM();
-
     latencySanity();
-    // std::cerr << "\n\n\n\n --- Markdown Table ---\n\n";
-    // std::cerr << "\nLAT | O/Head | L1 Load | L2 Load | Mem Load | DIV(29-42) | PAUSE(25)";
-    // std::cerr << "\n--- | --- | --- | --- | --- | --- | ---";
-    // for (int i=0; i < 500; i++) {
-    //     double oh_perc      = (double)ohead_lat[i] / (double)10;
-    //     double l1_perc      = (double)l1_lat[i]    / (double)10;
-    //     double l2_perc      = (double)l2_lat[i]    / (double)10;
-    //     double mem_perc     = (double)mem_lat[i]   / (double)10;
-    //     double div_perc     = (double)div_lat[i]   / (double)10;
-    //     double pse_perc     = (double)pause_lat[i] / (double)10;
-    //     if (i >= 500) {
-    //         oh_perc = 0; l1_perc = 0; l2_perc = 0; div_perc = 0; pse_perc = 0;
-    //     }
-    //     std::string cycles;
-    //     if (oh_perc > 1 || l1_perc > 1 || l2_perc > 1 || mem_perc > 1 || div_perc > 1 || pse_perc > 1) {
-    //         int temp, digits;
-    //         // STD::CERR
-    //         std::cerr << "\n" << i;
-    //         std::cerr << " | " << ohead_lat[i];
-    //         if (oh_perc > 1) fprintf(stderr, "(%.2f%%)", oh_perc);
-    //         std::cerr << " | " << l1_lat[i];
-    //         if (l1_perc > 1) fprintf(stderr, "(%.2f%%)", l1_perc);
-    //         std::cerr << " | " << l2_lat[i];
-    //         if (l2_perc > 1) fprintf(stderr, "(%.2f%%)", l2_perc);
-    //         std::cerr << " | " << mem_lat[i];
-    //         if (mem_perc > 1) fprintf(stderr, "(%.2f%%)", mem_perc);
-    //         std::cerr << " | " << div_lat[i];
-    //         if (div_perc > 1) fprintf(stderr, "(%.2f%%)", div_perc);
-    //         std::cerr << " | " << pause_lat[i];
-    //         if (pse_perc > 1) fprintf(stderr, "(%.2f%%)", pse_perc);
-    //     }
-    // }
+    
     printf("\n");
 }
 
@@ -657,3 +618,41 @@ int main(int argc, char *argv[]) {
     runLatencies(argc, argv);
     runBandwidths(argc, argv);
 }
+
+/*
+     --- Markdown Table Code ---
+
+    std::cerr << "\n\n\n\n --- Markdown Table ---\n\n";
+    std::cerr << "\nLAT | O/Head | L1 Load | L2 Load | Mem Load | DIV(29-42) | PAUSE(25)";
+    std::cerr << "\n--- | --- | --- | --- | --- | --- | ---";
+    for (int i=0; i < 500; i++) {
+        double oh_perc      = (double)ohead_lat[i] / (double)10;
+        double l1_perc      = (double)l1_lat[i]    / (double)10;
+        double l2_perc      = (double)l2_lat[i]    / (double)10;
+        double mem_perc     = (double)mem_lat[i]   / (double)10;
+        double div_perc     = (double)div_lat[i]   / (double)10;
+        double pse_perc     = (double)pause_lat[i] / (double)10;
+        if (i >= 500) {
+            oh_perc = 0; l1_perc = 0; l2_perc = 0; div_perc = 0; pse_perc = 0;
+        }
+        std::string cycles;
+        if (oh_perc > 1 || l1_perc > 1 || l2_perc > 1 || mem_perc > 1 || div_perc > 1 || pse_perc > 1) {
+            int temp, digits;
+            // STD::CERR
+            std::cerr << "\n" << i;
+            std::cerr << " | " << ohead_lat[i];
+            if (oh_perc > 1) fprintf(stderr, "(%.2f%%)", oh_perc);
+            std::cerr << " | " << l1_lat[i];
+            if (l1_perc > 1) fprintf(stderr, "(%.2f%%)", l1_perc);
+            std::cerr << " | " << l2_lat[i];
+            if (l2_perc > 1) fprintf(stderr, "(%.2f%%)", l2_perc);
+            std::cerr << " | " << mem_lat[i];
+            if (mem_perc > 1) fprintf(stderr, "(%.2f%%)", mem_perc);
+            std::cerr << " | " << div_lat[i];
+            if (div_perc > 1) fprintf(stderr, "(%.2f%%)", div_perc);
+            std::cerr << " | " << pause_lat[i];
+            if (pse_perc > 1) fprintf(stderr, "(%.2f%%)", pse_perc);
+        }
+    }
+
+*/
