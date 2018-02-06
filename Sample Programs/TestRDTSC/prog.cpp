@@ -13,7 +13,7 @@
     #include <sched.h>  // sched_setaffinity
 #endif
 
-const uint64_t MEM_SIZE  = 17179869184;
+const uint64_t MEM_SIZE  = 1073741824;
 const int MEM_LINE_SIZE  = 64;
 const int MEM_SET_SIZE   = 16;
 const int MEM_STRIDE     = 16;
@@ -31,6 +31,7 @@ const int L1_STRIDE     = 16;
 int l1_data[L1_SIZE/4];
 int l2_data[L2_SIZE/4];
 int mem_data[MEM_SIZE/4];
+int heap_data[L2_SIZE/4];
 
 void warmupCPUID() {
     __asm__ __volatile__ (
@@ -171,6 +172,8 @@ void runLatencies(int argc, char *argv[]) {
 
     warmup();
 
+    
+
     // Misc Vars.
         volatile int temp;
 
@@ -203,6 +206,50 @@ void runLatencies(int argc, char *argv[]) {
         uint64_t idx;
     //
     //
+
+
+    // -------- TEMP
+    warmup();                                           // Warmup timing instructions.
+
+        int stack_data[L2_SIZE/4];
+        start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
+        end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
+
+        // Take a starting measurement of the TSC.
+        start_timestamp(&start_hi, &start_lo);
+        // Load the data variable, which will exist in the L1 Cache.
+        asm volatile("MFENCE");
+        asm volatile("#Load Inst\n\tmov %%eax, %0": "=m"(stack_data[0]):: "eax", "memory");
+        asm volatile("MFENCE");        
+        // Take an ending measurement of the TSC.
+        end_timestamp(&end_hi, &end_lo);
+
+        // Convert the 4 x 32bit values into 2 x 64bit values.
+          start   = ( ((uint64_t)start_hi << 32) | start_lo );
+          end     = ( ((uint64_t)end_hi << 32) | end_lo );
+        latency = (end - start);
+        printf("\nStack Read: %d\n", latency);
+
+        start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
+        end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
+
+        // Take a starting measurement of the TSC.
+        start_timestamp(&start_hi, &start_lo);
+        // Load the data variable, which will exist in the L1 Cache.
+        asm volatile("MFENCE");
+        asm volatile("#Load Inst\n\tmov %%eax, %0": "=m"(heap_data[0]):: "eax", "memory");
+        asm volatile("MFENCE");        
+        // Take an ending measurement of the TSC.
+        end_timestamp(&end_hi, &end_lo);
+
+        // Convert the 4 x 32bit values into 2 x 64bit values.
+          start   = ( ((uint64_t)start_hi << 32) | start_lo );
+          end     = ( ((uint64_t)end_hi << 32) | end_lo );
+        latency = (end - start);
+        printf("\nHeap Read: %d\n", latency);
+
+    // -------- TEMP
+
     // Do 100 test runs of gathering the overhead.
     latency = 0;
     for (int i=0; i < 100; i++) {
@@ -319,7 +366,7 @@ void runLatencies(int argc, char *argv[]) {
           end     = ( ((uint64_t)end_hi << 32) | end_lo );
         latency = (end - start);
 
-        if (latency < 10000) mem_lat[latency]++;            // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
+        if (latency < 500) mem_lat[latency]++;            // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
 
         idx += ((rand()%10) * MEM_STRIDE);                  // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
         idx = idx%(MEM_SIZE/4);
