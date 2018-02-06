@@ -345,77 +345,6 @@ void latencyL2() {
     }
 }
 
-void latencyMEM() {
-    int latencies[500];                                     // i'th element of array indicates how many times a NOP took i cycles.
-    memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
-
-    // Timing variables.
-        uint32_t start_hi, start_lo, end_hi, end_lo;        // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
-        uint64_t start, end;                                // 64bit integers to hold the start/end timestamp counter values.
-        uint64_t latency;
-
-    // Do 1000 test runs of timing a MEM Load.
-    printf("\n\n\nTesting Memory\n");
-    latency = 0;
-    int mem_data[L2_SIZE/4];                                // Data to load.
-    int mem_idx = 0;                                        // What to load next.
-    // for (int i=0; i < 1000; i++) {
-
-        flushCache(L1_SIZE, L1_LINE_SIZE, L1_SET_SIZE);     // Flush the L1 Cache.
-        flushCache(L2_SIZE, L2_LINE_SIZE, L2_SET_SIZE);     // Flush the L2 Cache.
-
-        warmup();                                           // Warmup timing instructions.
-
-        start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
-        end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
-
-        // Take a starting measurement of the TSC.
-        start_timestamp(&start_hi, &start_lo);
-        // Load the data variable, which will exist in the L1 Cache.
-        asm volatile("MFENCE");
-        asm volatile("#Load Inst\n\tmov %%eax, %0": "=m"(mem_data[mem_idx]):: "eax", "memory");
-        asm volatile("MFENCE");
-        // Take an ending measurement of the TSC.
-        end_timestamp(&end_hi, &end_lo);
-
-        // Convert the 4 x 32bit values into 2 x 64bit values.
-          start   = ( ((uint64_t)start_hi << 32) | start_lo );
-          end     = ( ((uint64_t)end_hi << 32) | end_lo );
-        latency = (end - start);
-
-        if (latency < 500) latencies[latency]++;            // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
-
-        mem_idx += ((rand()%10) * MEM_STRIDE);              // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
-        mem_idx = mem_idx%(L2_SIZE/4);
-    // }
-
-    printf("\n\tLAT\t|\tMemory Hit");
-    printf("\n\t--------+-----------------------");
-    for (int i=0; i < 500; i++) {
-        double perc      = (double)latencies[i] / (double)10;
-        std::string cycles;
-        if (perc > 0) {
-            int temp, digits;
-            std::cout << "\n";
-
-            // STD::COUT
-                // Latency Column
-                std::cout << "\t" << i << "\t|";
-
-                // Overhead Column
-                    std::cout << "\t" << latencies[i];
-                    temp = latencies[i];
-                    digits = 0; while (temp != 0) { temp /= 10; digits++; }
-                    for (int i=digits; i < 5; i++) {
-                        std::cout << " ";
-                    }
-                    if (perc > 1) printf("(%.2f%%)", perc);
-                    else printf("      ");
-                    std::cout << "\t";
-        }
-    }
-}
-
 void latencySanity() {
     int div_lat[500];                                       // i'th element of array indicates how many times a DIV took i cycles.
     memset(div_lat, 0, sizeof(div_lat));                    // Initialise count of DIV latencies to 0.
@@ -562,7 +491,7 @@ void latencySanity() {
     }
 }
 
-void runLatencies(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     #ifdef __linux__
         int cpuAffinity = argc > 1 ? atoi(argv[1]) : -1;
 
@@ -585,38 +514,9 @@ void runLatencies(int argc, char *argv[]) {
     latencyOverhead();
     latencyL1();
     latencyL2();
-    latencyMEM();
     latencySanity();
 
     printf("\n");
-}
-
-void runBandwidths(int argc, char *argv[]) {
-    #ifdef __linux__
-        int cpuAffinity = argc > 1 ? atoi(argv[1]) : -1;
-
-        if (cpuAffinity > -1)
-        {
-            cpu_set_t mask;
-            int status;
-
-            CPU_ZERO(&mask);
-            CPU_SET(cpuAffinity, &mask);
-            status = sched_setaffinity(0, sizeof(mask), &mask);
-            if (status != 0)
-            {
-                perror("sched_setaffinity");
-            }
-            printf("\n\nSet CPU Affinity to CPU%d\n\n", cpuAffinity);
-        }
-    #endif
-
-    warmup();
-}
-
-int main(int argc, char *argv[]) {
-    runLatencies(argc, argv);
-    runBandwidths(argc, argv);
 }
 
 /*
