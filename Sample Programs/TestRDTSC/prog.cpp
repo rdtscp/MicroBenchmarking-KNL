@@ -221,6 +221,8 @@ void runLatencies(int argc, char *argv[]) {
         // else printf("\nTiming Overhead Anomaly: %lli Cycles", latency);
     }
 
+
+    printf("\nTesting L1\n");
     // @TODO Fix; Do 1000 test runs of timing an L1 Load.
     latency = 0;
     int l1_data[L1_SIZE/4];
@@ -258,6 +260,7 @@ void runLatencies(int argc, char *argv[]) {
         // else printf("\nTiming L1 Load Anomaly: %lli Cycles", latency);
     }
 
+    printf("\nTesting L2\n");    
     // Do 1000 test runs of timing an L2 Load.
     latency = 0;
     int l2_data[L2_SIZE/4];                                 // Data to load.
@@ -289,6 +292,7 @@ void runLatencies(int argc, char *argv[]) {
         l2_idx = l2_idx%(L2_SIZE/4);
     }
 
+    printf("\nTesting Memory\n");
     // Do 1000 test runs of timing a MEM Load.
     latency = 0;
     int mem_data[L2_SIZE/4];                                // Data to load.
@@ -298,7 +302,7 @@ void runLatencies(int argc, char *argv[]) {
 
         flushCache(L1_SIZE, L1_LINE_SIZE, L1_SET_SIZE);     // Flush the L1 Cache.
         flushCache(L2_SIZE, L2_LINE_SIZE, L2_SET_SIZE);     // Flush the L2 Cache.
-        flushCache(L2_SIZE * 36, L2_LINE_SIZE, L2_SET_SIZE);     // Flush the L2 Cache.
+        // flushCache(L2_SIZE * 36, L2_LINE_SIZE, L2_SET_SIZE);     // Flush the L2 Cache.
         
         warmup();                                           // Warmup timing instructions.
 
@@ -323,7 +327,7 @@ void runLatencies(int argc, char *argv[]) {
         // else printf("\nTiming MEM Load Anomaly: %lli Cycles", latency);
 
         mem_idx += ((rand()%10) * MEM_STRIDE);                  // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
-        mem_idx = mem_idx%(MEM_SIZE/4);
+        mem_idx = mem_idx%(L2_SIZE/4);
     }
 
     // Do 1000 test runs of timing a DIV Inst.
