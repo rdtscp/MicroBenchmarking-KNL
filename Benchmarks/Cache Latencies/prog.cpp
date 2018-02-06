@@ -202,6 +202,7 @@ void latencyOverhead() {
                     if (perc > 1) printf("(%.2f%%)", perc);
                     else printf("      ");
                     std::cout << "\t";
+                    if (perc > 50) printf(" --> %d Cycles", i);
         }
     }
 }
@@ -274,6 +275,7 @@ void latencyL1() {
                     if (perc > 1) printf("(%.2f%%)", perc);
                     else printf("      ");
                     std::cout << "\t";
+                    if (perc > 50) printf(" --> %d Cycles", i);
         }
     }
 }
@@ -341,6 +343,7 @@ void latencyL2() {
                     if (perc > 1) printf("(%.2f%%)", perc);
                     else printf("      ");
                     std::cout << "\t";
+                    if (perc > 50) printf(" --> %d Cycles", i);
         }
     }
 }
