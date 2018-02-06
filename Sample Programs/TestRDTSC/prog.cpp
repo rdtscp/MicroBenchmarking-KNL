@@ -226,7 +226,7 @@ void runLatencies(int argc, char *argv[]) {
     // @TODO Fix; Do 1000 test runs of timing an L1 Load.
     latency = 0;
     int l1_data[L1_SIZE/4];
-    memset(l1_data, 0, sizeof(l1_data));
+    // memset(l1_data, 0, sizeof(l1_data));
     for (int i=0; i < 1000; i++) {
         warmup();                                           // Warmup timestamping instructions.
 
@@ -264,7 +264,7 @@ void runLatencies(int argc, char *argv[]) {
     // Do 1000 test runs of timing an L2 Load.
     latency = 0;
     int l2_data[L2_SIZE/4];                                 // Data to load.
-    memset(l2_data, 0, sizeof(l2_data));                    // Initiliase data to load.
+    // memset(l2_data, 0, sizeof(l2_data));                    // Initiliase data to load.
     int l2_idx = 0;                                         // What to load next.
     for (int i=0; i < 1000; i++) {
         flushCache(L1_SIZE, L1_LINE_SIZE, L1_SET_SIZE);     // Flush the L1 Cache.
@@ -296,7 +296,7 @@ void runLatencies(int argc, char *argv[]) {
     // Do 1000 test runs of timing a MEM Load.
     latency = 0;
     int mem_data[L2_SIZE/4];                                // Data to load.
-    memset(mem_data, 0, sizeof(mem_data));                   // Initiliase data to load.
+    // memset(mem_data, 0, sizeof(mem_data));                   // Initiliase data to load.
     int mem_idx = 0;                                         // What to load next.
     for (int i=0; i < 1000; i++) {
 
