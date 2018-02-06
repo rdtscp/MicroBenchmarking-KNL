@@ -13,7 +13,7 @@
     #include <sched.h>  // sched_setaffinity
 #endif
 
-const int MEM_SIZE      = 262144;
+const int MEM_SIZE      = 0xffff;
 const int MEM_LINE_SIZE = 64;
 const int MEM_SET_SIZE  = 16;
 const int MEM_STRIDE    = 16;
@@ -27,6 +27,9 @@ const int L1_SIZE       = 32768;
 const int L1_LINE_SIZE  = 64;
 const int L1_SET_SIZE   = 8;
 const int L1_STRIDE     = 16;
+
+int mem_data[MEM_SIZE];
+
 
 void warmupCPUID() {
     __asm__ __volatile__ (
@@ -159,25 +162,24 @@ void latencyOverhead() {
         {
             perror("sched_setaffinity");
         }
-        printf("\n\nSet CPU Affinity to CPU%d\n\n", 0);
     #endif
 
     int latencies[500];                                     // i'th element of array indicates how many times a NOP took i cycles.
-    memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.    
-    
+    memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
+
     // Timing variables.
         uint32_t start_hi, start_lo, end_hi, end_lo;        // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
         uint64_t start, end;                                // 64bit integers to hold the start/end timestamp counter values.
         uint64_t latency;
 
     // Do 1000 test runs of gathering the overhead.
-    printf("\n\n\nTesting Overhead\n");    
+    printf("\n\n\nTesting Overhead\n");
     latency = 0;
     for (int i=0; i < 1000; i++) {
         warmup();
         start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
         end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
-        
+
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
         // Calculating overhead, so no instruction to be timed here.
@@ -216,8 +218,9 @@ void latencyOverhead() {
                     if (perc > 1) printf("(%.2f%%)", perc);
                     else printf("      ");
                     std::cout << "\t";
+                    if (perc > 50) printf(" --> %d Cycles", i);
         }
-    }    
+    }
 }
 
 void latencyMEM() {
@@ -232,12 +235,11 @@ void latencyMEM() {
         {
             perror("sched_setaffinity");
         }
-        printf("\n\nSet CPU Affinity to CPU%d\n\n", 0);
     #endif
 
     int latencies[500];                                     // i'th element of array indicates how many times a NOP took i cycles.
-    memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.    
-    
+    memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
+
     // Timing variables.
         uint32_t start_hi, start_lo, end_hi, end_lo;        // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
         uint64_t start, end;                                // 64bit integers to hold the start/end timestamp counter values.
@@ -246,13 +248,13 @@ void latencyMEM() {
     // Do 1000 test runs of timing a MEM Load.
     printf("\n\n\nTesting Memory\n");
     latency = 0;
-    int mem_data[L2_SIZE/4];                                // Data to load.
     int mem_idx = 0;                                        // What to load next.
-    // for (int i=0; i < 1000; i++) {
+    for (int i=0; i < 1000; i++) {
 
         flushCache(L1_SIZE, L1_LINE_SIZE, L1_SET_SIZE);     // Flush the L1 Cache.
         flushCache(L2_SIZE, L2_LINE_SIZE, L2_SET_SIZE);     // Flush the L2 Cache.
-        
+        flushCache(MEM_SIZE, MEM_LINE_SIZE, MEM_SET_SIZE);
+
         warmup();                                           // Warmup timing instructions.
 
         start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
@@ -263,7 +265,7 @@ void latencyMEM() {
         // Load the data variable, which will exist in the L1 Cache.
         asm volatile("MFENCE");
         asm volatile("#Load Inst\n\tmov %%eax, %0": "=m"(mem_data[mem_idx]):: "eax", "memory");
-        asm volatile("MFENCE");        
+        asm volatile("MFENCE");
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
@@ -274,9 +276,9 @@ void latencyMEM() {
 
         if (latency < 500) latencies[latency]++;            // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
 
-        mem_idx += ((rand()%10) * MEM_STRIDE);              // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
-        mem_idx = mem_idx%(L2_SIZE/4);
-    // }
+        mem_idx += ((rand()%100) * MEM_STRIDE);              // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
+        mem_idx = mem_idx%(MEM_SIZE);
+    }
 
     printf("\n\tLAT\t|\tMemory Hit");
     printf("\n\t--------+-----------------------");
@@ -301,8 +303,9 @@ void latencyMEM() {
                     if (perc > 1) printf("(%.2f%%)", perc);
                     else printf("      ");
                     std::cout << "\t";
+                    if (perc > 50) printf(" --> %d Cycles", i);
         }
-    }    
+    }
 }
 
 void latencySanity() {
@@ -317,9 +320,8 @@ void latencySanity() {
         {
             perror("sched_setaffinity");
         }
-        printf("\n\nSet CPU Affinity to CPU%d\n\n", 0);
     #endif
-    
+
     int div_lat[500];                                       // i'th element of array indicates how many times a DIV took i cycles.
     memset(div_lat, 0, sizeof(div_lat));                    // Initialise count of DIV latencies to 0.
     int pause_lat[500];                                     // i'th element of array indicates how many times a PAUSE took i cycles.
@@ -343,7 +345,7 @@ void latencySanity() {
 
         start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
         end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
-        
+
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
         // Load the data variable, which will exist in the L1 Cache.
@@ -370,7 +372,7 @@ void latencySanity() {
 
         start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
         end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
-        
+
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
         // Load the data variable, which will exist in the L1 Cache.
@@ -395,7 +397,7 @@ void latencySanity() {
 
         start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
         end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
-        
+
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
         // Load the data variable, which will exist in the L1 Cache.
@@ -465,7 +467,7 @@ void latencySanity() {
     }
 }
 
-int main(int argc, char *argv[]) { 
+int main(int argc, char *argv[]) {
     #ifdef __linux__
         cpu_set_t mask;
         int status;
@@ -477,12 +479,11 @@ int main(int argc, char *argv[]) {
         {
             perror("sched_setaffinity");
         }
-        printf("\n\nSet CPU Affinity to CPU%d\n\n", 0);
     #endif
-    
+
     latencyOverhead();
     latencyMEM();
     latencySanity();
-    
+
     printf("\n");
 }
