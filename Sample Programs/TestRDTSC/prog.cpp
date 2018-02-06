@@ -28,6 +28,10 @@ const int L1_LINE_SIZE  = 64;
 const int L1_SET_SIZE   = 8;
 const int L1_STRIDE     = 16;
 
+int l1_data[L1_SIZE/4];
+int l2_data[L2_SIZE/4];
+int mem_data[MEM_SIZE/4];
+
 void warmupCPUID() {
     __asm__ __volatile__ (
         "cpuid;cpuid;cpuid;cpuid;cpuid;cpuid;cpuid;cpuid;cpuid;cpuid;cpuid;cpuid;cpuid;cpuid;cpuid;cpuid;"
@@ -225,7 +229,7 @@ void runLatencies(int argc, char *argv[]) {
     printf("\nTesting L1\n");
     // @TODO Fix; Do 1000 test runs of timing an L1 Load.
     latency = 0;
-    int l1_data[L1_SIZE/4];
+    
     // memset(l1_data, 0, sizeof(l1_data));
     for (int i=0; i < 1000; i++) {
         warmup();                                           // Warmup timestamping instructions.
@@ -263,7 +267,6 @@ void runLatencies(int argc, char *argv[]) {
     printf("\nTesting L2\n");    
     // Do 1000 test runs of timing an L2 Load.
     latency = 0;
-    int l2_data[L2_SIZE/4];                                 // Data to load.
     // memset(l2_data, 0, sizeof(l2_data));                    // Initiliase data to load.
     int l2_idx = 0;                                         // What to load next.
     for (int i=0; i < 1000; i++) {
@@ -295,7 +298,7 @@ void runLatencies(int argc, char *argv[]) {
     printf("\nTesting Memory\n");
     // Do 1000 test runs of timing a MEM Load.
     latency = 0;
-    int mem_data[L2_SIZE/4];                                // Data to load.
+    
     // memset(mem_data, 0, sizeof(mem_data));                   // Initiliase data to load.
     int mem_idx = 0;                                         // What to load next.
     for (int i=0; i < 1000; i++) {
@@ -327,7 +330,7 @@ void runLatencies(int argc, char *argv[]) {
         // else printf("\nTiming MEM Load Anomaly: %lli Cycles", latency);
 
         mem_idx += ((rand()%10) * MEM_STRIDE);                  // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
-        mem_idx = mem_idx%(L2_SIZE/4);
+        mem_idx = mem_idx%(MEM_SIZE/4);
     }
 
     // Do 1000 test runs of timing a DIV Inst.
