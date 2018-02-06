@@ -13,7 +13,7 @@
     #include <sched.h>  // sched_setaffinity
 #endif
 
-const uint64_t MEM_SIZE       = 17179869184;
+const uint64_t MEM_SIZE  = 17179869184;
 const int MEM_LINE_SIZE  = 64;
 const int MEM_SET_SIZE   = 16;
 const int MEM_STRIDE     = 16;
@@ -130,6 +130,7 @@ inline __attribute__((always_inline)) volatile void end_timestamp(uint32_t *time
 
 // Attempts to full an N-way set associative cache with dead data.
 void flushCache(int sizeB, int lineB, int N) {
+    return;
     int num_lines = sizeB / lineB;
     int num_sets  = (num_lines / N);
     int bytes_to_fill = (N * num_sets) * lineB;
@@ -264,7 +265,6 @@ void runLatencies(int argc, char *argv[]) {
     memset(l2_data, 0, sizeof(l2_data));                    // Initiliase data to load.
     int l2_idx = 0;                                         // What to load next.
     for (int i=0; i < 1000; i++) {
-
         flushCache(L1_SIZE, L1_LINE_SIZE, L1_SET_SIZE);     // Flush the L1 Cache.
         
         warmup();                                           // Warmup timing instructions.
@@ -286,15 +286,14 @@ void runLatencies(int argc, char *argv[]) {
 
         if (latency < 500) l2_lat[latency]++;               // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
         // else printf("\nTiming L2 Load Anomaly: %lli Cycles", latency);
-
         l2_idx += ((rand()%10) * L2_STRIDE);    // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
         l2_idx = l2_idx%(L2_SIZE/4);
     }
 
     // Do 1000 test runs of timing a MEM Load.
     latency = 0;
-    int mem_data[MEM_SIZE/4];                                // Data to load.
-    // memset(mem_data, 0, sizeof(mem_data));                   // Initiliase data to load.
+    int mem_data[L2_SIZE/4];                                // Data to load.
+    memset(mem_data, 0, sizeof(mem_data));                   // Initiliase data to load.
     int mem_idx = 0;                                         // What to load next.
     for (int i=0; i < 1000; i++) {
 
@@ -413,7 +412,7 @@ void runLatencies(int argc, char *argv[]) {
     // Output results
     printf("\n\tLAT\t|\tO/Head\t\t|\tL1 Load\t\t|\tL2 Load\t\t|\tMem Load\t|\tDIV(29-42)\t|\tPAUSE(25)\t");
     printf("\n\t--------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------+-----------------------");
-    for (int i=0; i < 10000; i++) {
+    for (int i=0; i < 500; i++) {
         double oh_perc      = (double)ohead_lat[i] / (double)10;
         double l1_perc      = (double)l1_lat[i]    / (double)10;
         double l2_perc      = (double)l2_lat[i]    / (double)10;
@@ -500,7 +499,7 @@ void runLatencies(int argc, char *argv[]) {
     std::cerr << "\n\n\n\n --- Markdown Table ---\n\n";
     std::cerr << "\nLAT | O/Head | L1 Load | L2 Load | Mem Load | DIV(29-42) | PAUSE(25)";
     std::cerr << "\n--- | --- | --- | --- | --- | --- | ---";
-    for (int i=0; i < 10000; i++) {
+    for (int i=0; i < 500; i++) {
         double oh_perc      = (double)ohead_lat[i] / (double)10;
         double l1_perc      = (double)l1_lat[i]    / (double)10;
         double l2_perc      = (double)l2_lat[i]    / (double)10;
