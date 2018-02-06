@@ -145,7 +145,7 @@ void flushCache(int sizeB, int lineB, int N) {
     }
 }
 
-int main(int argc, char *argv[]) { 
+void runLatencies(int argc, char *argv[]) {
     #ifdef __linux__
         int cpuAffinity = argc > 1 ? atoi(argv[1]) : -1;
 
@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
         int l2_lat[500];                                        // i'th element of array indicates how many times an L1 Load took i cycles.
         memset(l2_lat, 0, sizeof(l2_lat));                      // Initialise count of overhead latencies to 0.
 
-        int mem_lat[10000];                                       // i'th element of array indicates how many times an L1 Load took i cycles.
+        int mem_lat[10000];                                     // i'th element of array indicates how many times an L1 Load took i cycles.
         memset(mem_lat, 0, sizeof(mem_lat));                    // Initialise count of overhead latencies to 0.
 
         int pause_lat[500];                                     // i'th element of array indicates how many times a PAUSE took i cycles.
@@ -218,7 +218,7 @@ int main(int argc, char *argv[]) {
 
         // Increment the appropriate indexes of our latency tracking arrays.
         if (latency < 500) ohead_lat[latency]++;            // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
-        else printf("\nTiming Overhead Anomaly: %lli Cycles", latency);
+        // else printf("\nTiming Overhead Anomaly: %lli Cycles", latency);
     }
 
     // @TODO Fix; Do 1000 test runs of timing an L1 Load.
@@ -255,7 +255,7 @@ int main(int argc, char *argv[]) {
 
         // Increment the appropriate indexes of our latency tracking arrays.
         if (latency < 500) l1_lat[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
-        else printf("\nTiming L1 Load Anomaly: %lli Cycles", latency);
+        // else printf("\nTiming L1 Load Anomaly: %lli Cycles", latency);
     }
 
     // Do 1000 test runs of timing an L2 Load.
@@ -285,9 +285,10 @@ int main(int argc, char *argv[]) {
         latency = (end - start);
 
         if (latency < 500) l2_lat[latency]++;               // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
-        else printf("\nTiming L2 Load Anomaly: %lli Cycles", latency);
+        // else printf("\nTiming L2 Load Anomaly: %lli Cycles", latency);
 
-        l2_idx += ((rand()%10) * L2_STRIDE)%(L2_SIZE/4);    // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
+        l2_idx += ((rand()%10) * L2_STRIDE);    // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
+        l2_idx = l2_idx%(L2_SIZE/4);
     }
 
     // Do 1000 test runs of timing a MEM Load.
@@ -321,9 +322,10 @@ int main(int argc, char *argv[]) {
         latency = (end - start);
 
         if (latency < 10000) mem_lat[latency]++;               // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
-        else printf("\nTiming MEM Load Anomaly: %lli Cycles", latency);
+        // else printf("\nTiming MEM Load Anomaly: %lli Cycles", latency);
 
-        mem_idx += ((rand()%10) * MEM_STRIDE)%(MEM_SIZE/4);  // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
+        mem_idx += ((rand()%10) * MEM_STRIDE);                  // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
+        mem_idx = mem_idx%(MEM_SIZE/4)
     }
 
     // Do 1000 test runs of timing a DIV Inst.
@@ -351,7 +353,7 @@ int main(int argc, char *argv[]) {
 
         // Increment the appropriate indexes of our latency tracking arrays.
         if (latency < 500) div_lat[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
-        else printf("\nTiming DIV Anomaly: %lli Cycles", latency);
+        // else printf("\nTiming DIV Anomaly: %lli Cycles", latency);
     }
 
     // Do 1000 test runs of timing a PAUSE Inst.
@@ -379,7 +381,7 @@ int main(int argc, char *argv[]) {
 
         // Increment the appropriate indexes of our latency tracking arrays.
         if (latency < 500) pause_lat[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
-        else printf("\nTiming PAUSE Anomaly: %lli Cycles", latency);
+        // else printf("\nTiming PAUSE Anomaly: %lli Cycles", latency);
     }
 
     // // Do 1000 test runs of timing a F2XM1 Inst.
@@ -528,4 +530,32 @@ int main(int argc, char *argv[]) {
         }
     }
     printf("\n");
+}
+
+void runBandwidths(int argc, char *argv[]) {
+    #ifdef __linux__
+        int cpuAffinity = argc > 1 ? atoi(argv[1]) : -1;
+
+        if (cpuAffinity > -1)
+        {
+            cpu_set_t mask;
+            int status;
+
+            CPU_ZERO(&mask);
+            CPU_SET(cpuAffinity, &mask);
+            status = sched_setaffinity(0, sizeof(mask), &mask);
+            if (status != 0)
+            {
+                perror("sched_setaffinity");
+            }
+            printf("\n\nSet CPU Affinity to CPU%d\n\n", cpuAffinity);
+        }
+    #endif
+
+    warmup();
+}
+
+int main(int argc, char *argv[]) { 
+    runLatencies(argc, argv);
+    runBandwidths(argc, argv);
 }
