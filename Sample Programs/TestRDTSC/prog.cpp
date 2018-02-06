@@ -130,7 +130,6 @@ inline __attribute__((always_inline)) volatile void end_timestamp(uint32_t *time
 
 // Attempts to full an N-way set associative cache with dead data.
 void flushCache(int sizeB, int lineB, int N) {
-    return;
     int num_lines = sizeB / lineB;
     int num_sets  = (num_lines / N);
     int bytes_to_fill = (N * num_sets) * lineB;
