@@ -325,7 +325,7 @@ void runLatencies(int argc, char *argv[]) {
         // else printf("\nTiming MEM Load Anomaly: %lli Cycles", latency);
 
         mem_idx += ((rand()%10) * MEM_STRIDE);                  // Update index to load from different cache line (unpredictably) => rand(0,10) * STRIDE
-        mem_idx = mem_idx%(MEM_SIZE/4)
+        mem_idx = mem_idx%(MEM_SIZE/4);
     }
 
     // Do 1000 test runs of timing a DIV Inst.
