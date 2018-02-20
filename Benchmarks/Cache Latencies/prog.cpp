@@ -246,7 +246,7 @@ void latencyL1() {
         // Use this data.
         volatile int temp;
         asm volatile (
-            "\n\tmove %0, %%eax":
+            "\n\tmov %0, %%eax":
             "=m"(temp)::
             "eax",
             "memory"
