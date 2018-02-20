@@ -230,30 +230,25 @@ void latencyL1() {
         for (int i=0; i < 16; i++)                          // Access required data beforehand, so that it is in L1 Cache.
             l1_data[i] = i + 1;
 
+
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
+        
         // Load the data variable, which will exist in the L1 Cache.
         asm volatile (
             "\n\t#1 Load Inst"
             "\n\tmov %%eax, %0"
-            "\n\tmov %%eax, %1":
+            "\n\tmov %%eax, %1"
+            "\n\tmov %%eax, %2":
             "=m"(l1_data[0]),
-            "=m"(l1_data[1])::
+            "=m"(l1_data[1]),
+            "=m"(l1_data[2])::
             "eax",
             "memory"
         );
 
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
-
-        // Use this data.
-        volatile int temp;
-        asm volatile (
-            "\n\tmov %0, %%eax":
-            "=m"(temp)::
-            "eax",
-            "memory"
-        );
 
         // Convert the 4 x 32bit values into 2 x 64bit values.
         start   = ( ((uint64_t)start_hi << 32) | start_lo );
