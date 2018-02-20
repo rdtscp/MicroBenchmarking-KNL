@@ -243,6 +243,15 @@ void latencyL1() {
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
+        // Use this data.
+        volatile int temp;
+        asm volatile (
+            "\n\tmove %0, %%eax":
+            "=m"(temp)::
+            "eax",
+            "memory"
+        );
+
         // Convert the 4 x 32bit values into 2 x 64bit values.
         start   = ( ((uint64_t)start_hi << 32) | start_lo );
         end     = ( ((uint64_t)end_hi << 32) | end_lo );
