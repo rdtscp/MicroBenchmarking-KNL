@@ -227,28 +227,45 @@ void latencyL1() {
         start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
         end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
 
-        for (int i=0; i < 16; i++)                          // Access required data beforehand, so that it is in L1 Cache.
+        for (int i=0; i < 154; i++)                          // Access required data beforehand, so that it is in L1 Cache.
             l1_data[i] = i + 1;
 
 
+        asm volatile("\t #==> Taking Timestamp");
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
-        
+        asm volatile("\t #==> Taken Timestamp");
+
         // Load the data variable, which will exist in the L1 Cache.
         asm volatile (
-            "\n\t#1 Load Inst"
-            "\n\tmov %%eax, %0"
-            "\n\tmov %%eax, %1"
-            "\n\tmov %%eax, %2":
-            "=m"(l1_data[0]),
-            "=m"(l1_data[1]),
-            "=m"(l1_data[2])::
-            "eax",
-            "memory"
+            "\n\t#1 L1 Load Inst"
+            "\n\tmov %1, %0"
+            "\n\tmov %3, %2"
+            "\n\tmov %5, %4"
+            "\n\tmov %7, %6"
+            "\n\tmov %8, %8"
+            "\n\tmov %11, %10"
+            :
+            "=r"(l1_data[0]),
+            "=r"(l1_data[16]),
+            "=r"(l1_data[32]),
+            "=r"(l1_data[48]),
+            "=r"(l1_data[64]),
+            "=r"(l1_data[80])
+            :
+            "r"(l1_data[0]),
+            "r"(l1_data[16]),
+            "r"(l1_data[32]),
+            "r"(l1_data[48]),
+            "r"(l1_data[64]),
+            "r"(l1_data[80])
+            :
         );
 
+        asm volatile("\t #==> Taking Timestamp");
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
+        asm volatile("\t #==> Taken Timestamp");    
 
         // Convert the 4 x 32bit values into 2 x 64bit values.
         start   = ( ((uint64_t)start_hi << 32) | start_lo );
@@ -312,7 +329,7 @@ void latencyL2() {
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
         // Load the data variable, which will exist in the L1 Cache.
-        asm volatile("#Load Inst\n\tmov %%eax, %0": "=m"(l2_data[l2_idx]):: "eax", "memory");
+        asm volatile("#L2 Load Inst\n\tmov %%eax, %0": "=m"(l2_data[l2_idx]):: "eax", "memory");
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
