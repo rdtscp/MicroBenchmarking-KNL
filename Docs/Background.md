@@ -21,7 +21,7 @@ A single __Tile__ has:
   * __Coherent__ across all Tiles
   * Connected by _2D Mesh_
 
-* __1 x Caching/Home Agent__ - Distributed Tag Directory to keep L2 Cache Coherent
+* __1 x Caching/Home Agent__ - Distributed Tag Directory to keep L2 Cache Coherent - MESIF Protocol
 * 2 VPU Cores
 
 ## L2 Cache Mesh
