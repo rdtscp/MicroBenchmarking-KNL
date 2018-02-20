@@ -276,7 +276,7 @@ void latencyL1() {
         if (latency < 500) latencies[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
     }
 
-    printf("\n\tLAT\t|\tL1 Hit");
+    printf("\n\tLAT\t|\t6 x L1 Hit");
     printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc      = (double)latencies[i] / (double)10;
