@@ -26,6 +26,7 @@
 #define STRIDE   LINE_SIZE_B / 4
 const unsigned long long L1_START_IDX = 0;
 const unsigned long long L2_START_IDX = L1_SIZE_B / LINE_SIZE_B;
+std::string mem_name = "DRAM";
 
 void warmupCPUID() {
     __asm__ __volatile__ (
@@ -392,7 +393,7 @@ void latencyMEM(int overhead) {
         uint64_t latency;
 
     // Do 1000 test runs of timing an L2 Load.
-    printf("\n\n\nTesting DRAM\n");
+    printf("\n\n\nTesting %s\n", mem_name.c_str());
     latency = 0;
     int data[MEM_ARR_B/4];                               // Allocate enough space to fill up L2 Cache.
     for (int i=0; i < 1000; i++) {
@@ -452,7 +453,7 @@ void latencyMEM(int overhead) {
     }
 
     /* Produce Output Table */
-    printf("\n\tLAT\t|\tMEM Hit");
+    printf("\n\tLAT\t|\t%s Hit", mem_name.c_str());
     printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc = (double)latencies[i] / (double)10;
@@ -626,23 +627,22 @@ void latencySanity() {
 
 int main(int argc, char *argv[]) {
     #ifdef __linux__
-        int cpuAffinity = argc > 1 ? atoi(argv[1]) : -1;
+        cpu_set_t mask;
+        int status;
 
-        if (cpuAffinity > -1)
+        CPU_ZERO(&mask);
+        CPU_SET(cpuAffinity, &mask);
+        status = sched_setaffinity(0, sizeof(mask), &mask);
+        if (status != 0)
         {
-            cpu_set_t mask;
-            int status;
-
-            CPU_ZERO(&mask);
-            CPU_SET(cpuAffinity, &mask);
-            status = sched_setaffinity(0, sizeof(mask), &mask);
-            if (status != 0)
-            {
-                perror("sched_setaffinity");
-            }
-            printf("\n\nSet CPU Affinity to CPU%d\n\n", cpuAffinity);
+            perror("sched_setaffinity");
         }
+        printf("\n\nSet CPU Affinity to CPU%d\n\n", cpuAffinity);
     #endif
+
+    if ((std::string)argv[1] == "1") {
+        mem_name = "MCDRAM";
+    }
 
     int overhead = latencyOverhead();
     latencyL1(overhead);
