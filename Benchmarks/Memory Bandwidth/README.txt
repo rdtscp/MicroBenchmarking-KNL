@@ -12,4 +12,7 @@ Benchmark suite adapted from Karl Rupp's github repo and article:
 
 --- USAGE ---
 
- ./run.sh [0 | 1]
+To Run:
+
+    make
+    ./run [ 0 | 1 ]         # 0 for DDR, 1 for MCDRAM

@@ -1,5 +1,6 @@
+--- USAGE ---
 
 To Run:
 
     make
-    ./cache_latencies.o
+    ./run [ 0 | 1 ]         # 0 for DDR, 1 for MCDRAM
