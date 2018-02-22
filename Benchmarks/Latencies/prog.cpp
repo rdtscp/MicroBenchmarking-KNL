@@ -631,13 +631,13 @@ int main(int argc, char *argv[]) {
         int status;
 
         CPU_ZERO(&mask);
-        CPU_SET(cpuAffinity, &mask);
+        CPU_SET(0, &mask);
         status = sched_setaffinity(0, sizeof(mask), &mask);
         if (status != 0)
         {
             perror("sched_setaffinity");
         }
-        printf("\n\nSet CPU Affinity to CPU%d\n\n", cpuAffinity);
+        printf("\n\nSet CPU Affinity to CPU%d\n\n", 0);
     #endif
 
     if ((std::string)argv[1] == "1") {
