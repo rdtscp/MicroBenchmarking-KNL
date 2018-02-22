@@ -9,4 +9,4 @@ if [ -z "$1" ]
 fi
 
 export OMP_PROC_BIND=true
-OMP_NUM_THREADS=0   numactl --membind $1 ./dram_latency.o
+OMP_NUM_THREADS=0   numactl --membind $1 ./latencies.o
