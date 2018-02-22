@@ -637,7 +637,7 @@ int main(int argc, char *argv[]) {
         {
             perror("sched_setaffinity");
         }
-        printf("\n\nSet CPU Affinity to CPU%d\n\n", 0);
+        printf("\nSet CPU Affinity to CPU%d\n\n", 0);
     #endif
 
     if ((std::string)argv[1] == "1") {
