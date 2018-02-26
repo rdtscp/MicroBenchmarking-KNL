@@ -10,6 +10,7 @@
 #include <vector>
 
 #ifdef __linux__    // Linux only
+    #include <linux/getcpu.h>
     #include <sched.h>  // sched_setaffinity
     cpu_set_t mask;
 #endif
@@ -212,7 +213,7 @@ void latencyL2(int overhead) {
         {
             perror("sched_setaffinity");
         }
-        printf("\nRunning on CPU%d", vgetcpu());        
+        printf("\nRunning on CPU%d", sched_getcpu());        
     #endif
     // Use CPU0 to write the variable.
     for (int i=0; i < (LINE_SIZE_B / 4); i++)
@@ -227,7 +228,7 @@ void latencyL2(int overhead) {
             perror("sched_setaffinity");
         }
 
-        printf("\nRunning on CPU%d", vgetcpu());
+        printf("\nRunning on CPU%d", sched_getcpu());
     #endif
 
     // Timing variables.
