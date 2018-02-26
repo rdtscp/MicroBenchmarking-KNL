@@ -17,7 +17,6 @@
  */
 #define L1_SIZE_B           262144
 #define L2_SIZE_B           1048576
-#define MEM_ARR_B           62144
 #define LINE_SIZE_B         64
 
 
@@ -26,7 +25,6 @@
 #define STRIDE   LINE_SIZE_B / 4
 const unsigned long long L1_START_IDX = 0;
 const unsigned long long L2_START_IDX = L1_SIZE_B / LINE_SIZE_B;
-std::string mem_name = "DRAM";
 
 void warmupCPUID() {
     __asm__ __volatile__ (
@@ -196,8 +194,64 @@ int latencyOverhead() {
 }
 
 
+volatile int data[LINE_SIZE_B / 4];             // One cache lines worth of data; 
+volatile int state = 0;                         // Which operation to do.
+
 /* Measures the time to load from L1 Cache, prints findings in ASCII Table */
 void latencyL2(int overhead) {
+    int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
+    // printf("\n%d Cores", numCPU);
+    #ifdef __linux__
+        cpu_set_t mask;
+        int status;
+
+        CPU_ZERO(&mask);
+        CPU_SET(0, &mask);
+        status = sched_setaffinity(0, sizeof(mask), &mask);
+        if (status != 0)
+        {
+            perror("sched_setaffinity");
+        }
+    #endif
+    // Use CPU0 to write the variable.
+    for (int i=0; i < (LINE_SIZE_B / 4); i++)
+        data[i] = i + 1;
+
+    #ifdef __linux__
+        cpu_set_t mask;
+        int status;
+
+        CPU_ZERO(&mask);
+        CPU_SET((numCPU - 1), &mask);
+        status = sched_setaffinity((numCPU - 1), sizeof(mask), &mask);
+        if (status != 0)
+        {
+            perror("sched_setaffinity");
+        }
+    #endif
+
+    // Timing variables.
+        uint32_t start_hi, start_lo, end_hi, end_lo;        // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
+        uint64_t start, end;                                // 64bit integers to hold the start/end timestamp counter values.
+        uint64_t latency = 0;
+
+    warmup();
+    start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
+    end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
+
+    // Take a starting measurement of the TSC.
+    start_timestamp(&start_hi, &start_lo);
+    // Calculating overhead, so no instruction to be timed here.
+    volatile int temp = data[(LINE_SIZE_B / 8)];
+    // Take an ending measurement of the TSC.
+    end_timestamp(&end_hi, &end_lo);
+
+    // Convert the 4 x 32bit values into 2 x 64bit values.
+        start   = ( ((uint64_t)start_hi << 32) | start_lo );
+        end     = ( ((uint64_t)end_hi << 32) | end_lo );
+        latency = end - start;
+
+    printf("\n Latency Fetching Variable from other L2 = %d", latency);
     
 }
 
@@ -216,11 +270,8 @@ int main(int argc, char *argv[]) {
         printf("\n\nSet CPU Affinity to CPU%d\n\n", 0);
     #endif
 
-    if ((std::string)argv[1] == "1") {
-        mem_name = "MCDRAM";
-    }
-
     int overhead = latencyOverhead();
+    latencyL2(overhead);
 
     printf("\n");
 }
