@@ -202,7 +202,7 @@ volatile int state = 0;                         // Which operation to do.
 void latencyL2(int overhead) {
     int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
     int lastCPU = numCPU - 1;
-    printf("\n%d Cores", numCPU);
+    printf("\n%d Cores. lastCPU = %d", numCPU, lastCPU);
     #ifdef __linux__
         cpu_set_t mask;
         int status;
