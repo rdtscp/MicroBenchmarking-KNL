@@ -212,14 +212,13 @@ void latencyL2(int overhead) {
         {
             perror("sched_setaffinity");
         }
+        printf("\nRunning on CPU%d", vgetcpu());        
     #endif
     // Use CPU0 to write the variable.
     for (int i=0; i < (LINE_SIZE_B / 4); i++)
         data[i] = i + 1;
 
     #ifdef __linux__
-        int status;
-
         CPU_ZERO(&mask);
         CPU_SET((numCPU - 1), &mask);
         status = sched_setaffinity((numCPU - 1), sizeof(mask), &mask);
@@ -227,6 +226,8 @@ void latencyL2(int overhead) {
         {
             perror("sched_setaffinity");
         }
+
+        printf("\nRunning on CPU%d", vgetcpu());
     #endif
 
     // Timing variables.
