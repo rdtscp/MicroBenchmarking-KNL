@@ -264,19 +264,6 @@ void latencyL2(int overhead) {
 }
 
 int main(int argc, char *argv[]) {
-    #ifdef __linux__
-        int status;
-
-        CPU_ZERO(&mask);
-        CPU_SET(0, &mask);
-        status = sched_setaffinity(0, sizeof(mask), &mask);
-        if (status != 0)
-        {
-            perror("sched_setaffinity");
-        }
-        printf("\n\nSet CPU Affinity to CPU%d\n\n", 0);
-    #endif
-
     int overhead = latencyOverhead();
     latencyL2(overhead);
 
