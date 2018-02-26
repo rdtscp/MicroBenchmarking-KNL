@@ -224,42 +224,42 @@ void latencyL2(int overhead) {
         
     #endif
 
-    // Timing variables.
-        uint32_t start_hi, start_lo, end_hi, end_lo;        // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
-        uint64_t start, end;                                // 64bit integers to hold the start/end timestamp counter values.
-        uint64_t latency = 0;
+    // // Timing variables.
+    //     uint32_t start_hi, start_lo, end_hi, end_lo;        // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
+    //     uint64_t start, end;                                // 64bit integers to hold the start/end timestamp counter values.
+    //     uint64_t latency = 0;
 
-    warmup();
-    start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
-    end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
+    // warmup();
+    // start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
+    // end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
 
-    // Take a starting measurement of the TSC.
-    start_timestamp(&start_hi, &start_lo);
-    // Calculating overhead, so no instruction to be timed here.
-    asm volatile (
-            "\n\t#1 L1 Load Inst"
-            "\n\tmov %1, %0"
-            "\n\tmov %3, %2"
-            "\n\tmov %5, %4"
-            :
-            "=r"(data[0]),
-            "=r"(data[1]),
-            "=r"(data[2])
-            :
-            "r"(data[0]),
-            "r"(data[1]),
-            "r"(data[2])
-            :
-    );
-    // Take an ending measurement of the TSC.
-    end_timestamp(&end_hi, &end_lo);
+    // // Take a starting measurement of the TSC.
+    // start_timestamp(&start_hi, &start_lo);
+    // // Calculating overhead, so no instruction to be timed here.
+    // asm volatile (
+    //         "\n\t#1 L1 Load Inst"
+    //         "\n\tmov %1, %0"
+    //         "\n\tmov %3, %2"
+    //         "\n\tmov %5, %4"
+    //         :
+    //         "=r"(data[0]),
+    //         "=r"(data[1]),
+    //         "=r"(data[2])
+    //         :
+    //         "r"(data[0]),
+    //         "r"(data[1]),
+    //         "r"(data[2])
+    //         :
+    // );
+    // // Take an ending measurement of the TSC.
+    // end_timestamp(&end_hi, &end_lo);
 
-    // Convert the 4 x 32bit values into 2 x 64bit values.
-        start   = ( ((uint64_t)start_hi << 32) | start_lo );
-        end     = ( ((uint64_t)end_hi << 32) | end_lo );
-        latency = end - start;
+    // // Convert the 4 x 32bit values into 2 x 64bit values.
+    //     start   = ( ((uint64_t)start_hi << 32) | start_lo );
+    //     end     = ( ((uint64_t)end_hi << 32) | end_lo );
+    //     latency = end - start;
 
-    printf("\n Latency Fetching Variable from other L2 = %llu", latency);
+    // printf("\n Latency Fetching Variable from other L2 = %llu", latency);
     
 }
 
