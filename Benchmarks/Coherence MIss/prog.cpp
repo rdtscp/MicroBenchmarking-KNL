@@ -202,6 +202,7 @@ volatile int state = 0;                         // Which operation to do.
 /* Measures the time to load from L1 Cache, prints findings in ASCII Table */
 void latencyL2(int overhead) {
     int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
+    int lastCPU = numCPU - 1;
     // printf("\n%d Cores", numCPU);
     #ifdef __linux__
         int status;
@@ -221,8 +222,8 @@ void latencyL2(int overhead) {
 
     #ifdef __linux__
         CPU_ZERO(&mask);
-        CPU_SET((numCPU - 1), &mask);
-        status = sched_setaffinity((numCPU - 1), sizeof(mask), &mask);
+        CPU_SET(lastCPU, &mask);
+        status = sched_setaffinity(lastCPU, sizeof(mask), &mask);
         if (status != 0)
         {
             perror("sched_setaffinity");
