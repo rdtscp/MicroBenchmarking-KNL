@@ -11,6 +11,7 @@
 
 #ifdef __linux__    // Linux only
     #include <sched.h>  // sched_setaffinity
+    cpu_set_t mask;
 #endif
 /*
  *  Put your Definitions Below
@@ -202,7 +203,6 @@ void latencyL2(int overhead) {
     int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
     // printf("\n%d Cores", numCPU);
     #ifdef __linux__
-        cpu_set_t mask;
         int status;
 
         CPU_ZERO(&mask);
@@ -218,7 +218,6 @@ void latencyL2(int overhead) {
         data[i] = i + 1;
 
     #ifdef __linux__
-        cpu_set_t mask;
         int status;
 
         CPU_ZERO(&mask);
@@ -242,7 +241,21 @@ void latencyL2(int overhead) {
     // Take a starting measurement of the TSC.
     start_timestamp(&start_hi, &start_lo);
     // Calculating overhead, so no instruction to be timed here.
-    volatile int temp = data[(LINE_SIZE_B / 8)];
+    asm volatile (
+            "\n\t#1 L1 Load Inst"
+            "\n\tmov %1, %0"
+            "\n\tmov %3, %2"
+            "\n\tmov %5, %4"
+            :
+            "=r"(data[0]),
+            "=r"(data[1]),
+            "=r"(data[2])
+            :
+            "r"(data[0]),
+            "r"(data[1]),
+            "r"(data[2])
+            :
+    );
     // Take an ending measurement of the TSC.
     end_timestamp(&end_hi, &end_lo);
 
@@ -251,13 +264,12 @@ void latencyL2(int overhead) {
         end     = ( ((uint64_t)end_hi << 32) | end_lo );
         latency = end - start;
 
-    printf("\n Latency Fetching Variable from other L2 = %d", latency);
+    printf("\n Latency Fetching Variable from other L2 = %llu", latency);
     
 }
 
 int main(int argc, char *argv[]) {
     #ifdef __linux__
-        cpu_set_t mask;
         int status;
 
         CPU_ZERO(&mask);
