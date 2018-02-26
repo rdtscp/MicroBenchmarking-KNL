@@ -202,8 +202,9 @@ volatile int state = 0;                         // Which operation to do.
 void latencyL2(int overhead) {
     int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
     int lastCPU = numCPU - 1;
-    // printf("\n%d Cores", numCPU);
+    printf("\n%d Cores", numCPU);
     #ifdef __linux__
+        cpu_set_t mask;
         int status;
 
         CPU_ZERO(&mask);
@@ -213,8 +214,8 @@ void latencyL2(int overhead) {
         {
             perror("sched_setaffinity");
         }
-
-        printf("\nRunning on CPU%d", sched_getcpu());      
+        printf("\nSet CPU Affinity to CPU%d\n\n", lastCPU);
+        printf("\nRunning on CPU%d", sched_getcpu());   
     #endif
     // Use CPU0 to write the variable.
     for (int i=0; i < (LINE_SIZE_B / 4); i++)
