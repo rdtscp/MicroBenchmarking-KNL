@@ -287,7 +287,7 @@ void latencyL1(int overhead) {
     }
 }
 
-/* Measures the time to load from L1 Cache, prints findings in ASCII Table */
+/* Measures the time to load from L2 Cache, prints findings in ASCII Table */
 void latencyL2(int overhead) {
     int latencies[500];                                     // i'th element of array indicates how many times an L1 Load took i cycles.
     memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
@@ -301,9 +301,12 @@ void latencyL2(int overhead) {
     printf("\n\n\nTesting L2\n");
     latency = 0;
     // volatile int *l2_data = (int*)malloc(L2_SIZE_B);
-    int l2_data[L2_SIZE_B/4];                               // Allocate enough space to fill up L2 Cache.
-    memset(l2_data, 0, sizeof(l2_data));
+    
     for (int i=0; i < 1000; i++) {
+
+        int l2_data[L2_SIZE_B/4];                               // Allocate enough space to fill up L2 Cache.
+        memset(l2_data, 0, sizeof(l2_data));
+
         warmup();                                           // Warmup timestamping instructions.
 
         start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
