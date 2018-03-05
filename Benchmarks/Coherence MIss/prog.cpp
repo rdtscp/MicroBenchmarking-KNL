@@ -8,6 +8,12 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <thread>
+#include <time.h>
+#include <thread>
+
+
+
 
 #ifdef __linux__    // Linux only
     #include <sched.h>  // sched_setaffinity
@@ -20,6 +26,7 @@
 #define L2_SIZE_B           1048576
 #define LINE_SIZE_B         64
 
+#define NUM_CORES           64
 
 /* ---- DONT TOUCH BELOW ---- */
 
@@ -96,6 +103,40 @@ void warmup() {
     warmupRDTSCP();
 }
 
+/*
+ *      https://stackoverflow.com/a/43778921
+ * 
+ */
+short CorePin(int coreID) {
+    #ifdef __linux__
+    short status=0;
+    int nThreads = std::thread::hardware_concurrency();
+    //std::cout<<nThreads;
+    cpu_set_t set;
+    // std::cout<<"\nPinning to Core:"<<coreID;
+    CPU_ZERO(&set);
+
+    if(coreID == -1) {
+        status=-1;
+        std::cout<<"CoreID is -1"<<"\n";
+        return status;
+    }
+
+    if(coreID > nThreads) {
+        std::cout<<"Invalid CORE ID"<<"\n";
+        return status;
+    }
+
+    CPU_SET(coreID,&set);
+    if(sched_setaffinity(0, sizeof(cpu_set_t), &set) < 0) {
+        std::cout<<"Unable to Set Affinity"<<"\n";
+        return -1;
+    }
+    return 1;
+    #endif
+    return -1;
+}
+
 inline __attribute__((always_inline)) volatile void benchit_timestamp(uint32_t *time_hi, uint32_t *time_lo) {
     __asm__ __volatile__("rdtsc": "=a" (*time_lo), "=d" (*time_hi));
 }
@@ -124,6 +165,14 @@ inline __attribute__((always_inline)) volatile void end_timestamp(uint32_t *time
         "CPUID\n\t": "=r" (*time_hi), "=r" (*time_lo)::
         "%rax", "%rbx", "%rcx", "%rdx"
     );
+}
+
+unsigned long tacc_rdtscp(int *chip, int *core) {
+    unsigned long a,d,c;
+    __asm__ volatile("rdtscp" : "=a" (a), "=d" (d), "=c" (c));
+    *chip = (c & 0xFFF000)>>12;
+    *core = c & 0xFFF;
+    return ((unsigned long)a) | (((unsigned long)d) << 32);;
 }
 
 // ------ Latencies ------ \\
@@ -194,79 +243,313 @@ int latencyOverhead() {
     return output;
 }
 
+//******** DATA ********
+bool verbose = 0;
+int currTask = 0;
+int latencies[500];
 
-volatile int data[LINE_SIZE_B / 4];             // One cache lines worth of data; 
-volatile int state = 0;                         // Which operation to do.
+int l2_data[L2_SIZE_B/4];                               // Allocate enough space to fill up L2 Cache.
 
-/* Measures the time to load from L1 Cache, prints findings in ASCII Table */
-void latencyL2(int overhead) {
-    int numCPU = sysconf(_SC_NPROCESSORS_ONLN);
-    int lastCPU = numCPU - 1;
-    printf("\n%d Cores. lastCPU = %d", numCPU, lastCPU);
-    #ifdef __linux__
-        cpu_set_t mask;
-        int status;
+/*
+ *      Benchmark Stages:
+ *      0   -   Set up Threads using Cores 0 and 15
+ *      1   -   Time 1000 Accesses to L2 Data from Core 0.
+ *      2   -   Overwrite all the values in L2 Data from Core 0.
+ *      3   -   Time the read of the L2 Data from Core 15.
+ * 
+ */
 
-        CPU_ZERO(&mask);
-        CPU_SET(lastCPU, &mask);
-        status = sched_setaffinity(lastCPU, sizeof(mask), &mask);
-        if (status != 0)
-        {
-            perror("sched_setaffinity");
+void readLocalOverwrite(int coreToPin, int overhead) {
+    CorePin(coreToPin);
+    int core, chip;
+    tacc_rdtscp(&chip, &core);
+    if (verbose) printf("\nTask 1 Waiting on Core %d", core);
+
+    while (currTask < 1) { /* Pass */ }
+    // sleep(1000);
+
+    if (verbose) printf("\nTask 1 Running on Core %d", core);
+
+    /* Perform Task */
+        // Overwrite the same Cache lines.
+        for (int i = (L2_START_IDX + 0 * STRIDE); i < (L2_START_IDX + 20 * STRIDE); i++) {
+            l2_data[i] = 1234;
         }
-        printf("\nSet CPU Affinity to CPU%d\n\n", lastCPU);
-        printf("\nRunning on CPU%d", sched_getcpu());   
-    #endif
-    // Use CPU0 to write the variable.
-    for (int i=0; i < (LINE_SIZE_B / 4); i++)
-        data[i] = i + 1;
-
-    #ifdef __linux__
-        
-    #endif
-
-    // // Timing variables.
-    //     uint32_t start_hi, start_lo, end_hi, end_lo;        // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
-    //     uint64_t start, end;                                // 64bit integers to hold the start/end timestamp counter values.
-    //     uint64_t latency = 0;
-
-    // warmup();
-    // start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
-    // end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
-
-    // // Take a starting measurement of the TSC.
-    // start_timestamp(&start_hi, &start_lo);
-    // // Calculating overhead, so no instruction to be timed here.
-    // asm volatile (
-    //         "\n\t#1 L1 Load Inst"
-    //         "\n\tmov %1, %0"
-    //         "\n\tmov %3, %2"
-    //         "\n\tmov %5, %4"
-    //         :
-    //         "=r"(data[0]),
-    //         "=r"(data[1]),
-    //         "=r"(data[2])
-    //         :
-    //         "r"(data[0]),
-    //         "r"(data[1]),
-    //         "r"(data[2])
-    //         :
-    // );
-    // // Take an ending measurement of the TSC.
-    // end_timestamp(&end_hi, &end_lo);
-
-    // // Convert the 4 x 32bit values into 2 x 64bit values.
-    //     start   = ( ((uint64_t)start_hi << 32) | start_lo );
-    //     end     = ( ((uint64_t)end_hi << 32) | end_lo );
-    //     latency = end - start;
-
-    // printf("\n Latency Fetching Variable from other L2 = %llu", latency);
+    /*              */
     
+    if (verbose) printf("\nTask 1 Complete on Core %d", core);
+    currTask = 2;
+    while (currTask < 3) { /* spin */ }    
+}
+
+void readRemoteModified(int coreToPin, int overhead) {
+    CorePin(coreToPin);
+    int core, chip;
+    tacc_rdtscp(&chip, &core);
+    if (verbose) printf("\nTask 2 Waiting on Core %d", core);
+
+    while (currTask < 2) { /* Pass */ }
+    // sleep(1000);
+    
+    if (verbose) printf("\nTask 2 Running on Core %d", core);
+
+    /* Perform Task */ 
+        // Timing variables.
+        uint32_t start_hi, start_lo, end_hi, end_lo;        // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
+        uint64_t start, end;                                // 64bit integers to hold the start/end timestamp counter values.
+        uint64_t latency;
+
+        start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
+        end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
+
+        // Take a starting measurement of the TSC.
+        start_timestamp(&start_hi, &start_lo);
+
+        // Perform 6 Loads to L1 Data from different Cache Lines.
+            asm volatile (
+            "\n\t#1 L1 Load Inst"
+            "\n\tmov %1, %0"
+            "\n\tmov %3, %2"
+            "\n\tmov %5, %4"
+            :
+            "=r"(l2_data[L2_START_IDX + 0 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 1 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 2 * STRIDE])
+            
+            :
+            "r"(l2_data[L2_START_IDX + 0 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 1 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 2 * STRIDE])
+            
+            :
+        );
+
+         // Take an ending measurement of the TSC.
+        end_timestamp(&end_hi, &end_lo); 
+
+        // Convert the 4 x 32bit values into 2 x 64bit values.
+             start   = ( ((uint64_t)start_hi << 32) | start_lo );
+             end     = ( ((uint64_t)end_hi << 32) | end_lo );
+        latency = (end - start);
+
+        if (latency < 500) latencies[latency]++;
+    /*              */
+
+    if (verbose) printf("\nTask 2 Complete on Core %d", core);
+    currTask = 3;
+    while (currTask < 3) { /* spin */ }     
+}
+
+void deadFunc(int coreToPin) {
+    CorePin(coreToPin);
+    int core, chip;
+    tacc_rdtscp(&chip, &core);
+    
+    /* Perform Task */
+        if (verbose) printf("\nDead Thread Waiting on Core %d", core);
+    /*              */
+
+    while (currTask < 3) { /* spin */ }
+}
+
+/* Performs Cache Coherence Miss Latencies Benchmarks */
+void coherence(int overhead) {
+    
+    printf("\n\n --- Starting Coherence Benchmarks ---");
+    memset(latencies, 0, sizeof(latencies));
+
+    for (int i = 0; i < 1000; i++) {
+        currTask = 0;
+        if (verbose) printf("\nScheduling tasks");
+
+        /* Create a Thread for each Core */
+        std::thread tasks[NUM_CORES];
+        for (int i = 0; i < NUM_CORES; i++) {
+            if (i == 0)
+                tasks[i] = std::thread(readLocalOverwrite, i, overhead);
+            else if (i == 1)
+                tasks[i] = std::thread(readRemoteModified, 0, overhead);
+            else
+                tasks[i] = std::thread(deadFunc, i);
+        }
+
+        currTask = 1;
+
+        while (currTask < 3) { /* spin */ }
+        if (verbose) printf("\n All Tasks Complete");
+        for (int i = 0; i < NUM_CORES; i++)
+            tasks[i].join();
+        if (verbose) printf("\n Wrapped Up");
+    }
+
+    /* Produce Output Table */
+    printf("\n\tLAT\t|\t3 x L2 Miss");
+    printf("\n\t--------+-----------------------");
+    for (int i=0; i < 500; i++) {
+        double perc = (double)latencies[i] / (double)10;
+        if (perc > 1) {
+            int temp, digits;
+            std::cout << "\n";
+
+            // Latency Column
+            std::cout << "\t" << i << "\t|";
+
+            // L1 Load Count Column
+            std::cout << "\t" << latencies[i];
+            temp = latencies[i];
+            digits = 0; while (temp != 0) { temp /= 10; digits++; }
+            for (int i=digits; i < 5; i++) {
+                std::cout << " ";
+            }
+            if (perc > 1) printf("(%.2f%%)", perc);
+            else printf("      ");
+            std::cout << "\t";
+            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", i, (double)(i - overhead)/3.0);
+        }
+    }
+
 }
 
 int main(int argc, char *argv[]) {
     int overhead = latencyOverhead();
-    latencyL2(overhead);
+    coherence(overhead);
 
     printf("\n");
 }
+
+
+
+
+
+
+// /* Measures the time to load from L1 Cache, prints findings in ASCII Table */
+// void foo(int overhead) {
+//     // Threads = 256;
+//     // Core = 256 % 64
+
+//     CorePin(0);
+//     int latencies[500];                                     // i'th element of array indicates how many times an L1 Load took i cycles.
+//     memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
+//     int latencies2[500];                                     // i'th element of array indicates how many times an L1 Load took i cycles.
+//     memset(latencies2, 0, sizeof(latencies2));                // Initialise count of overhead latencies to 0.
+
+//     // Timing variables.
+//         uint32_t start_hi, start_lo, end_hi, end_lo;        // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
+//         uint64_t start, end;                                // 64bit integers to hold the start/end timestamp counter values.
+//         uint64_t latency;
+
+//     // Do 1000 test runs of timing an L2 Load.
+//     printf("\n\n\nTesting L2\n");
+//     latency = 0;
+//     // volatile int *l2_data = (int*)malloc(L2_SIZE_B);
+//     for (int i=0; i < 1000; i++) {
+//         asm volatile("CPUID");        
+//         CorePin(0);
+//         asm volatile("CPUID");
+        
+//         int l2_data[L2_SIZE_B/4];                               // Allocate enough space to fill up L2 Cache.
+//         memset(l2_data, 0, sizeof(l2_data));        
+//         warmup();                                           // Warmup timestamping instructions.
+
+//         start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
+//         end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
+
+//         /*
+//          *  L1 Cache: [ | | | ]
+//          *                    ^
+//          *  L2 Cache: [ | | | | | | | | | | | | | | | ]
+//          *                    ^
+//          *            Try flush Cache Lines up to here, then read from above
+//          *          only so we read from L2 exclusively.
+//          * 
+//          */
+//         // Load all our Data into L1 & L2 Caches.
+//         for (int i=L1_START_IDX; i < (L1_SIZE_B/4); i++)             // Access required data beforehand, so that it is in L1 Cache.
+//             l2_data[i] = i + 1;
+        
+
+//         // Take a starting measurement of the TSC.
+//         start_timestamp(&start_hi, &start_lo);
+
+//         // Perform 6 Loads to L1 Data from different Cache Lines.
+//         asm volatile (
+//             "\n\t#1 L1 Load Inst"
+//             "\n\tmov %1, %0"
+//             "\n\tmov %3, %2"
+//             "\n\tmov %5, %4"
+//             :
+//             "=r"(l2_data[L2_START_IDX + 0 * STRIDE]),
+//             "=r"(l2_data[L2_START_IDX + 1 * STRIDE]),
+//             "=r"(l2_data[L2_START_IDX + 2 * STRIDE])
+//             :
+//             "r"(l2_data[L2_START_IDX + 0 * STRIDE]),
+//             "r"(l2_data[L2_START_IDX + 1 * STRIDE]),
+//             "r"(l2_data[L2_START_IDX + 2 * STRIDE])
+//             :
+//         );
+
+//         // Take an ending measurement of the TSC.
+//         end_timestamp(&end_hi, &end_lo);   
+
+//         // Convert the 4 x 32bit values into 2 x 64bit values.
+//          start   = ( ((uint64_t)start_hi << 32) | start_lo );
+//          end     = ( ((uint64_t)end_hi << 32) | end_lo );
+//         latency = (end - start);
+
+//         // Increment the appropriate indexes of our latency tracking arrays.
+//         if (latency < 500) latencies[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
+//     }
+
+//     /* Produce Output Table */
+//     printf("\n\tLAT\t|\t3 x L2 Hit");
+//     printf("\n\t--------+-----------------------");
+//     for (int i=0; i < 500; i++) {
+//         double perc = (double)latencies[i] / (double)10;
+//         if (perc > 1) {
+//             int temp, digits;
+//             std::cout << "\n";
+
+//             // Latency Column
+//             std::cout << "\t" << i << "\t|";
+
+//             // L1 Load Count Column
+//             std::cout << "\t" << latencies[i];
+//             temp = latencies[i];
+//             digits = 0; while (temp != 0) { temp /= 10; digits++; }
+//             for (int i=digits; i < 5; i++) {
+//                 std::cout << " ";
+//             }
+//             if (perc > 1) printf("(%.2f%%)", perc);
+//             else printf("      ");
+//             std::cout << "\t";
+//             if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", i, (double)(i - overhead)/3.0);
+//         }
+//     }
+
+//     /* Produce Output Table */
+//     printf("\n\tLAT\t|\t3 x L2 Hit");
+//     printf("\n\t--------+-----------------------");
+//     for (int i=0; i < 500; i++) {
+//         double perc = (double)latencies2[i] / (double)10;
+//         if (perc > 1) {
+//             int temp, digits;
+//             std::cout << "\n";
+
+//             // Latency Column
+//             std::cout << "\t" << i << "\t|";
+
+//             // L1 Load Count Column
+//             std::cout << "\t" << latencies2[i];
+//             temp = latencies2[i];
+//             digits = 0; while (temp != 0) { temp /= 10; digits++; }
+//             for (int i=digits; i < 5; i++) {
+//                 std::cout << " ";
+//             }
+//             if (perc > 1) printf("(%.2f%%)", perc);
+//             else printf("      ");
+//             std::cout << "\t";
+//             if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", i, (double)(i - overhead)/3.0);
+//         }
+//     }
+
+// }
