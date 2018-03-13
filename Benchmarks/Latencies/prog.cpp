@@ -129,7 +129,7 @@ inline __attribute__((always_inline)) volatile void end_timestamp(uint32_t *time
 
 // ------ Latencies ------ \\
 
-int latencyOverhead() {
+int latencyL1Overhead() {
     int output = 0;
     int latencies[500];                                     // i'th element of array indicates how many times a NOP took i cycles.
     memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
@@ -140,7 +140,7 @@ int latencyOverhead() {
         uint64_t latency;
 
     // Do 1000 test runs of gathering the overhead.
-    printf("\n\n\nTesting Overhead\n");
+    printf("\n\n\nL1 Overhead\n");
     latency = 0;
     for (int i=0; i < 1000; i++) {
         warmup();
@@ -151,6 +151,11 @@ int latencyOverhead() {
         start_timestamp(&start_hi, &start_lo);
         // Calculating overhead, so no instruction to be timed here.
         asm volatile("#Overhead Latency");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
@@ -195,8 +200,12 @@ int latencyOverhead() {
     return output;
 }
 
+
+
+
 /* Measures the time to load from L1 Cache, prints findings in ASCII Table */
 void latencyL1(int overhead) {
+    double num_loads = 5.0;
     int latencies[500];                                     // i'th element of array indicates how many times an L1 Load took i cycles.
     memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
 
@@ -226,25 +235,27 @@ void latencyL1(int overhead) {
         asm volatile (
             "\n\t#1 L1 Load Inst"
             "\n\tmov %1, %0"
+            "\n\tMFENCE"
             "\n\tmov %3, %2"
+            "\n\tMFENCE"
             "\n\tmov %5, %4"
+            "\n\tMFENCE"
             "\n\tmov %7, %6"
-            "\n\tmov %8, %8"
-            "\n\tmov %11, %10"
+            "\n\tMFENCE"
+            "\n\tmov %9, %8"
+            "\n\tMFENCE"
             :
             "=r"(l1_data[0 * STRIDE]),
             "=r"(l1_data[1 * STRIDE]),
             "=r"(l1_data[2 * STRIDE]),
             "=r"(l1_data[3 * STRIDE]),
-            "=r"(l1_data[4 * STRIDE]),
-            "=r"(l1_data[5 * STRIDE])
+            "=r"(l1_data[4 * STRIDE])
             :
             "r"(l1_data[0 * STRIDE]),
             "r"(l1_data[1 * STRIDE]),
             "r"(l1_data[2 * STRIDE]),
             "r"(l1_data[3 * STRIDE]),
-            "r"(l1_data[4 * STRIDE]),
-            "r"(l1_data[5 * STRIDE])
+            "r"(l1_data[4 * STRIDE])
             :
         );
 
@@ -282,13 +293,81 @@ void latencyL1(int overhead) {
             if (perc > 1) printf("(%.2f%%)", perc);
             else printf("      ");
             std::cout << "\t";
-            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", (i - overhead), (double)((double)(i - overhead)/6.00));
+            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", (i - overhead), (double)((double)(i - overhead)/num_loads));
         }
     }
 }
 
+int latencyL2Overhead() {
+    int output = 0;
+    int latencies[500];                                     // i'th element of array indicates how many times a NOP took i cycles.
+    memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
+
+    // Timing variables.
+        uint32_t start_hi, start_lo, end_hi, end_lo;        // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
+        uint64_t start, end;                                // 64bit integers to hold the start/end timestamp counter values.
+        uint64_t latency;
+
+    // Do 1000 test runs of gathering the overhead.
+    printf("\n\n\nL2 Overhead\n");
+    latency = 0;
+    for (int i=0; i < 1000; i++) {
+        warmup();
+        start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
+        end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
+
+        // Take a starting measurement of the TSC.
+        start_timestamp(&start_hi, &start_lo);
+        // Calculating overhead, so no instruction to be timed here.
+        asm volatile("#Overhead Latency");
+        asm volatile("MFENCE");
+        // Take an ending measurement of the TSC.
+        end_timestamp(&end_hi, &end_lo);
+
+        // Convert the 4 x 32bit values into 2 x 64bit values.
+        start   = ( ((uint64_t)start_hi << 32) | start_lo );
+        end     = ( ((uint64_t)end_hi << 32) | end_lo );
+        latency = end - start;
+
+        // Increment the appropriate indexes of our latency tracking arrays.
+        if (latency < 500) latencies[latency]++;            // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
+    }
+
+    printf("\n\tLAT\t|\tO/Head");
+    printf("\n\t--------+-----------------------");
+    for (int i=0; i < 500; i++) {
+        double perc      = (double)latencies[i] / (double)10;
+        std::string cycles;
+        if (perc > 1) {
+            int temp, digits;
+            std::cout << "\n";
+
+            // STD::COUT
+                // Latency Column
+                std::cout << "\t" << i << "\t|";
+
+                // Overhead Column
+                    std::cout << "\t" << latencies[i];
+                    temp = latencies[i];
+                    digits = 0; while (temp != 0) { temp /= 10; digits++; }
+                    for (int i=digits; i < 5; i++) {
+                        std::cout << " ";
+                    }
+                    if (perc > 1) printf("(%.2f%%)", perc);
+                    else printf("      ");
+                    std::cout << "\t";
+                    if (perc > 50) {
+                        printf(" --> %d Cycles", i);
+                        output = i;
+                    }
+        }
+    }
+    return output;
+}
+
 /* Measures the time to load from L2 Cache, prints findings in ASCII Table */
 void latencyL2(int overhead) {
+    double num_loads = 1.0;
     int latencies[500];                                     // i'th element of array indicates how many times an L1 Load took i cycles.
     memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
 
@@ -333,16 +412,11 @@ void latencyL2(int overhead) {
         asm volatile (
             "\n\t#1 L1 Load Inst"
             "\n\tmov %1, %0"
-            "\n\tmov %3, %2"
-            "\n\tmov %5, %4"
+            "\n\tMFENCE"
             :
-            "=r"(l2_data[L2_START_IDX + 0 * STRIDE]),
-            "=r"(l2_data[L2_START_IDX + 1 * STRIDE]),
-            "=r"(l2_data[L2_START_IDX + 2 * STRIDE])
+            "=r"(l2_data[L2_START_IDX + 0 * STRIDE])
             :
-            "r"(l2_data[L2_START_IDX + 0 * STRIDE]),
-            "r"(l2_data[L2_START_IDX + 1 * STRIDE]),
-            "r"(l2_data[L2_START_IDX + 2 * STRIDE])
+            "r"(l2_data[L2_START_IDX + 0 * STRIDE])
             :
         );
 
@@ -380,9 +454,78 @@ void latencyL2(int overhead) {
             if (perc > 1) printf("(%.2f%%)", perc);
             else printf("      ");
             std::cout << "\t";
-            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", i, (double)(i - overhead)/3.0);
+            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", i, (double)(i - overhead)/num_loads);
         }
     }
+}
+
+
+
+int latencyMEMOverhead() {
+    int output = 0;
+    int latencies[500];                                     // i'th element of array indicates how many times a NOP took i cycles.
+    memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
+
+    // Timing variables.
+        uint32_t start_hi, start_lo, end_hi, end_lo;        // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
+        uint64_t start, end;                                // 64bit integers to hold the start/end timestamp counter values.
+        uint64_t latency;
+
+    // Do 1000 test runs of gathering the overhead.
+    printf("\n\n\nMEM Overhead\n");
+    latency = 0;
+    for (int i=0; i < 1000; i++) {
+        warmup();
+        start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
+        end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
+
+        // Take a starting measurement of the TSC.
+        start_timestamp(&start_hi, &start_lo);
+        // Calculating overhead, so no instruction to be timed here.
+        asm volatile("#Overhead Latency");
+        asm volatile("MFENCE");
+        // Take an ending measurement of the TSC.
+        end_timestamp(&end_hi, &end_lo);
+
+        // Convert the 4 x 32bit values into 2 x 64bit values.
+        start   = ( ((uint64_t)start_hi << 32) | start_lo );
+        end     = ( ((uint64_t)end_hi << 32) | end_lo );
+        latency = end - start;
+
+        // Increment the appropriate indexes of our latency tracking arrays.
+        if (latency < 500) latencies[latency]++;            // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
+    }
+
+    printf("\n\tLAT\t|\tO/Head");
+    printf("\n\t--------+-----------------------");
+    for (int i=0; i < 500; i++) {
+        double perc      = (double)latencies[i] / (double)10;
+        std::string cycles;
+        if (perc > 1) {
+            int temp, digits;
+            std::cout << "\n";
+
+            // STD::COUT
+                // Latency Column
+                std::cout << "\t" << i << "\t|";
+
+                // Overhead Column
+                    std::cout << "\t" << latencies[i];
+                    temp = latencies[i];
+                    digits = 0; while (temp != 0) { temp /= 10; digits++; }
+                    for (int i=digits; i < 5; i++) {
+                        std::cout << " ";
+                    }
+                    if (perc > 1) printf("(%.2f%%)", perc);
+                    else printf("      ");
+                    std::cout << "\t";
+                    if (perc > 50) {
+                        printf(" --> %d Cycles", i);
+                        output = i;
+                    }
+        }
+    }
+    return output;
 }
 
 /* Measures the time to load from L1 Cache, prints findings in ASCII Table */
@@ -438,6 +581,7 @@ void latencyMEM(int overhead) {
         asm volatile (
             "\n\t#1 L1 Load Inst"
             "\n\tmov %%eax, %0"
+            "\n\tMFENCE"
             ::
             "r"(data[133 * STRIDE])
             :
@@ -481,6 +625,8 @@ void latencyMEM(int overhead) {
         }
     }
 }
+
+
 
 void latencySanity() {
     int div_lat[500];                                       // i'th element of array indicates how many times a DIV took i cycles.
@@ -647,10 +793,12 @@ int main(int argc, char *argv[]) {
         mem_name = "MCDRAM";
     }
 
-    int overhead = latencyOverhead();
-    latencyL1(overhead);
-    latencyL2(overhead);
-    latencyMEM(overhead);
+    // int overhead = latencyOverhead();
+    latencyL1(latencyL1Overhead());
+    printf("\n\n\t------------------------------------");
+    latencyL2(latencyL2Overhead());
+    printf("\n\n\t------------------------------------");    
+    latencyMEM(latencyMEMOverhead());
     latencySanity();
 
     printf("\n");
