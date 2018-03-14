@@ -181,7 +181,172 @@ unsigned long tacc_rdtscp(int *chip, int *core) {
 
 // ------ Latencies ------ \\
 
-int latencyOverhead() {
+
+
+//******** DATA ********
+bool verbose = 0;
+int currTask = 0;
+int iteration = 0;
+int latencies[500];
+
+static int shared_data[L2_SIZE_B/4];                        // Allocate enough space to fill up L2 Cache.
+
+// Timing variables.
+uint32_t start_hi, start_lo, end_hi, end_lo;                // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
+uint64_t start, end;                                        // 64bit integers to hold the start/end timestamp counter values.
+uint64_t latency;
+
+/*
+ *      Benchmark Stages:
+ *      0   -   Set up Threads using Cores 0 and 15
+ *      1   -   Time 1000 Accesses to L2 Data from Core 0.
+ *      2   -   Overwrite all the values in L2 Data from Core 0.
+ *      3   -   Time the read of the L2 Data from Core 15.
+ * 
+ */
+
+/* Measures the time to load from L1 Cache, prints findings in ASCII Table */
+void setModified(int coreNum, int runState) {
+    CorePin(coreNum);
+
+    // While we are on a valid task, continue running.
+    while (currTask != -1) {
+        // If its this Task's turn.
+        if (currTask == runState) {   
+
+            /* Payload */
+                for (int i=0; i < (6 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
+                    shared_data[i] = i + 1;
+                }
+            /***********/
+
+            asm volatile("MFENCE");
+            currTask++;
+        }
+    }
+
+}
+
+void setExclusive(int coreNum, int runState) {
+    CorePin(coreNum);
+
+    // While we are on a valid task, continue running.
+    while (currTask != -1) {
+        // If its this Task's turn.
+        if (currTask == runState) {
+
+            /* Payload */
+                volatile int temp = 0;
+                for (int i=0; i < (6 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
+                    temp = shared_data[i];
+                    temp += 1;                                     // Use temp
+                }
+            /***********/
+
+            asm volatile("MFENCE");
+            currTask++;
+        }
+    }
+
+}
+
+void setShared(int coreNum, int runState) {
+    CorePin(coreNum);
+
+    // While we are on a valid task, continue running.
+    while (currTask != -1) {
+        // If its this Task's turn.
+        if (currTask == runState) {
+
+            /* Payload */
+                volatile int temp = 0;
+                for (int i=0; i < (6 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
+                    temp = shared_data[i];
+                    temp += 1;                                     // Use temp
+                }
+            /***********/
+
+            asm volatile("MFENCE");
+            currTask++;
+        }
+    }
+
+}
+
+void timeAccess(int coreNum, int runState) {
+    CorePin(coreNum);
+    
+    // While we are on a valid task, continue running.
+    while (currTask != -1) {
+        // If its this Task's turn.
+        if (currTask  == runState) {
+    
+            /* Payload */
+                start_hi = 0; end_hi = 0;
+                start_lo = 0; end_lo = 0;
+
+                asm volatile("MFENCE");
+                // Take a starting measurement of the TSC.
+                start_timestamp(&start_hi, &start_lo);
+
+                // Perform 6 Loads to L1 Data from different Cache Lines.
+                asm volatile (
+                    "\n\t#1 L1 Load Inst"
+                    "\n\tmov %1, %0"
+                    "\n\t MFENCE"
+                    "\n\tmov %3, %2"
+                    "\n\t MFENCE"
+                    "\n\tmov %5, %4"
+                    "\n\t MFENCE"
+                    "\n\tmov %7, %6"
+                    "\n\t MFENCE"
+                    :
+                    "=r"(shared_data[0 * STRIDE]),
+                    "=r"(shared_data[1 * STRIDE]),
+                    "=r"(shared_data[2 * STRIDE]),
+                    "=r"(shared_data[3 * STRIDE])
+                    :
+                    "r"(shared_data[0 * STRIDE]),
+                    "r"(shared_data[1 * STRIDE]),
+                    "r"(shared_data[2 * STRIDE]),
+                    "r"(shared_data[3 * STRIDE])
+                    :
+                );
+
+                // Take an ending measurement of the TSC.
+                end_timestamp(&end_hi, &end_lo);   
+
+                // Convert the 4 x 32bit values into 2 x 64bit values.
+                start   = ( ((uint64_t)start_hi << 32) | start_lo );
+                end     = ( ((uint64_t)end_hi << 32) | end_lo );
+                latency = (end - start);
+
+                // Increment the appropriate indexes of our latency tracking arrays.
+                if (latency < 500) latencies[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
+
+            /***********/
+
+            currTask++;
+        }
+    }
+
+}
+
+
+void deadFunc(int coreToPin) {
+    CorePin(coreToPin);
+
+    // printf("\nDead Task Running on Core %d", sched_getcpu());
+    
+    /* Perform Task */
+        // Nothing...
+    /*              */
+
+    while (currTask != -1) { /* Spin */ }
+}
+
+
+int timingOverhead() {
     int output = 0;
     int latencies[500];                                     // i'th element of array indicates how many times a NOP took i cycles.
     memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
@@ -192,7 +357,7 @@ int latencyOverhead() {
         uint64_t latency;
 
     // Do 1000 test runs of gathering the overhead.
-    printf("\n\n\nTesting Overhead\n");
+    printf("\n\n\n  --- \tTesting Overhead\n");
     latency = 0;
     for (int i=0; i < 1000; i++) {
         warmup();
@@ -207,8 +372,8 @@ int latencyOverhead() {
         asm volatile("MFENCE");
         asm volatile("MFENCE");
         asm volatile("MFENCE");
-        asm volatile("MFENCE");
-        asm volatile("MFENCE");
+        // asm volatile("MFENCE");
+        // asm volatile("MFENCE");
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
@@ -253,155 +418,27 @@ int latencyOverhead() {
     return output;
 }
 
-//******** DATA ********
-bool verbose = 0;
-int currTask = 0;
-int iteration = 0;
-int latencies[500];
-
-static int shared_data[L2_SIZE_B/4];                        // Allocate enough space to fill up L2 Cache.
-
-// Timing variables.
-uint32_t start_hi, start_lo, end_hi, end_lo;                // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
-uint64_t start, end;                                        // 64bit integers to hold the start/end timestamp counter values.
-uint64_t latency;
-
-/*
- *      Benchmark Stages:
- *      0   -   Set up Threads using Cores 0 and 15
- *      1   -   Time 1000 Accesses to L2 Data from Core 0.
- *      2   -   Overwrite all the values in L2 Data from Core 0.
- *      3   -   Time the read of the L2 Data from Core 15.
- * 
- */
-
-/* Measures the time to load from L1 Cache, prints findings in ASCII Table */
-void Task1(int coreNum) {
-    CorePin(coreNum);
-
-    printf("\nTask1 Running on Core %d", sched_getcpu());
-
-    // While we are on a valid task, continue running.
-    while (currTask != -1) {
-        // If its this Task's turn.
-        if (currTask == 1) {
-
-            /* Payload */
-                for (int i=0; i < (6 * STRIDE); i++)             // Access required data beforehand, so that it is in L1 Cache.
-                    shared_data[i] = i + 1;
-            /***********/
-
-            asm volatile("MFENCE");
-            currTask = 2;
-        }
-    }
-
-}
-
-void Task2(int coreNum) {
-    CorePin(coreNum);
-
-    printf("\nTask2 Running on Core %d", sched_getcpu());
-    
-
-    // While we are on a valid task, continue running.
-    while (currTask != -1) {
-        // If its this Task's turn.
-        if (currTask  == 2) {
-
-            /* Payload */
-                start_hi = 0; end_hi = 0;
-                start_lo = 0; end_lo = 0;
-
-                asm volatile("MFENCE");
-                // Take a starting measurement of the TSC.
-                start_timestamp(&start_hi, &start_lo);
-
-                // Perform 6 Loads to L1 Data from different Cache Lines.
-                asm volatile (
-                    "\n\t#1 L1 Load Inst"
-                    "\n\tmov %1, %0"
-                    "\n\t MFENCE"
-                    "\n\tmov %3, %2"
-                    "\n\t MFENCE"
-                    "\n\tmov %5, %4"
-                    "\n\t MFENCE"
-                    "\n\tmov %7, %6"
-                    "\n\t MFENCE"
-                    "\n\tmov %8, %8"
-                    "\n\t MFENCE"
-                    "\n\tmov %11, %10"
-                    "\n\t MFENCE"
-                    :
-                    "=r"(shared_data[0 * STRIDE]),
-                    "=r"(shared_data[1 * STRIDE]),
-                    "=r"(shared_data[2 * STRIDE]),
-                    "=r"(shared_data[3 * STRIDE]),
-                    "=r"(shared_data[4 * STRIDE]),
-                    "=r"(shared_data[5 * STRIDE])
-                    :
-                    "r"(shared_data[0 * STRIDE]),
-                    "r"(shared_data[1 * STRIDE]),
-                    "r"(shared_data[2 * STRIDE]),
-                    "r"(shared_data[3 * STRIDE]),
-                    "r"(shared_data[4 * STRIDE]),
-                    "r"(shared_data[5 * STRIDE])
-                    :
-                );
-
-                // Take an ending measurement of the TSC.
-                end_timestamp(&end_hi, &end_lo);   
-
-                // Convert the 4 x 32bit values into 2 x 64bit values.
-                start   = ( ((uint64_t)start_hi << 32) | start_lo );
-                end     = ( ((uint64_t)end_hi << 32) | end_lo );
-                latency = (end - start);
-
-                // Increment the appropriate indexes of our latency tracking arrays.
-                if (latency < 500) latencies[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
-
-            /***********/
-
-            currTask = 3;
-        }
-    }
-
-}
-
-
-void deadFunc(int coreToPin) {
-    CorePin(coreToPin);
-
-    // printf("\nDead Task Running on Core %d", sched_getcpu());
-    
-    /* Perform Task */
-        // Nothing...
-    /*              */
-
-    while (currTask != -1) { /* Spin */ }
-}
-
-/* Performs Cache Coherence Miss Latencies Benchmarks */
-void coherence(int overhead) {
+/* Performs Remote Read to Modified Line Benchmarks */
+void remoteModified(int overhead) {
+    double num_loads = 4.0;
     currTask = 0;
     
-    printf("\n\n --- Starting Coherence Benchmarks ---");
-    printf("\n => Target Core: %d", TARGET_CORE);
+    printf("\n\n\n  --- \tMeasure Remote Modified Lines\n");
+    printf("\n\t => Target Core: %d\n", TARGET_CORE);
     memset(latencies, 0, sizeof(latencies));
 
     /* Spin Up Thread for each Core */
     std::vector<std::thread> tasks;
-
     for (int i = 0; i < NUM_CORES; i++) {
         bool set = false;
         if (i == BASE_CORE) {
-            printf("\nSet Task1 to Core %d", i);
-            tasks.push_back(std::thread(Task1, i));
+            printf("\n\t => Pinning setModified to\tCore %d", i);
+            tasks.push_back(std::thread(setModified, i, 1));
             set = true;
         }
         if (i == TARGET_CORE) {
-            printf("\nSet Task2 to Core %d", i);
-            tasks.push_back(std::thread(Task2, i));
+            printf("\n\t => Pinning timeAccess  to\tCore %d", i);
+            tasks.push_back(std::thread(timeAccess, i, 2));
             if (set) i++;
             set = true;
         }
@@ -426,9 +463,10 @@ void coherence(int overhead) {
     for (int i = 0; i < tasks.size(); i++)
         tasks[i].join();
 
-    tasks.clear();    
+    tasks.clear();
+    printf("\n\n");
     /* Produce Output Table */
-    printf("\n\tLAT\t|\t6 x L2 Access");
+    printf("\n\tLAT\t|\t4 x Remote L2 Modified");
     printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc = (double)latencies[i] / (double)10;
@@ -449,18 +487,199 @@ void coherence(int overhead) {
             if (perc > 1) printf("(%.2f%%)", perc);
             else printf("      ");
             std::cout << "\t";
-            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", i, (double)(i - overhead)/6.0);
+            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", i, (double)(i - overhead)/num_loads);
+        }
+    }
+
+}
+
+/* Performs Remote Read to Exclusive Line Benchmarks */
+void remoteExclusive(int overhead) {
+    double num_loads = 4.0;
+    currTask = 0;
+    
+    printf("\n\n\n  --- \tMeasure Remote Exclusive Lines\n");
+    printf("\n\t => Target Core: %d\n", TARGET_CORE);
+    memset(latencies, 0, sizeof(latencies));
+
+    /* Spin Up Thread for each Core */
+    std::vector<std::thread> tasks;
+
+    for (int i = 0; i < NUM_CORES; i++) {
+        bool set = false;
+        if (i == BASE_CORE) {
+            printf("\n\t => Pinning setExclusive to\tCore %d", i);
+            tasks.push_back(std::thread(setExclusive, i, 1));
+            set = true;
+        }
+        if (i == TARGET_CORE) {
+            printf("\n\t => Pinning timeAccess to\tCore %d", i);
+            tasks.push_back(std::thread(timeAccess, i, 2));
+            if (set) i++;
+            set = true;
+        }
+        if (set) continue;
+        tasks.push_back(std::thread(deadFunc, i));
+    }
+
+    /* Perform 1000 Experiments */
+    for (int i = 0; i < 1000; i++) {
+        currTask = 0;
+        memset(shared_data, 0, sizeof(shared_data));
+        currTask = 1;
+
+        /* Threads Take Over */
+        
+        while (currTask != 3) { /* Wait for Threads to complete Tasks, then start again. */ }
+    }
+
+    currTask = -1;  // Mark All Threads Complete
+
+    // Terminate safely.
+    for (int i = 0; i < tasks.size(); i++)
+        tasks[i].join();
+
+    tasks.clear();
+    printf("\n\n");
+    /* Produce Output Table */
+    printf("\n\tLAT\t|\t4 x Remote L2 Exclusive");
+    printf("\n\t--------+-----------------------");
+    for (int i=0; i < 500; i++) {
+        double perc = (double)latencies[i] / (double)10;
+        if (perc > 1) {
+            int temp, digits;
+            std::cout << "\n";
+
+            // Latency Column
+            std::cout << "\t" << i << "\t|";
+
+            // L1 Load Count Column
+            std::cout << "\t" << latencies[i];
+            temp = latencies[i];
+            digits = 0; while (temp != 0) { temp /= 10; digits++; }
+            for (int i=digits; i < 5; i++) {
+                std::cout << " ";
+            }
+            if (perc > 1) printf("(%.2f%%)", perc);
+            else printf("      ");
+            std::cout << "\t";
+            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", i, (double)(i - overhead)/num_loads);
+        }
+    }
+
+}
+
+/* Performs Remote Read to Shared Line Benchmarks */
+void remoteShared(int overhead) {
+    double num_loads = 4.0;
+    currTask = 0;
+    
+    printf("\n\n\n  --- \tMeasure Remote Shared Lines\n");
+    printf("\n\t => Target Core: %d\n", TARGET_CORE);
+    memset(latencies, 0, sizeof(latencies));
+
+    /* Spin Up Thread for each Core */
+    std::vector<std::thread> tasks;
+    int shareCore = 1;
+    if (shareCore == TARGET_CORE) shareCore++;
+    for (int i = 0; i < NUM_CORES; i++) {
+        bool set = false;
+        if (i == BASE_CORE) {
+            printf("\n\t => Pinning setExclusive to\tCore %d", i);
+            tasks.push_back(std::thread(setExclusive, i, 1));
+            set = true;
+        }
+        if (i == shareCore) {
+            printf("\n\t => Pinning setShared to\tCore %d", i);
+            tasks.push_back(std::thread(setShared, i, 2));
+            set = true;
+        }
+        if (i == TARGET_CORE) {
+            printf("\n\t => Pinning timeAccess to\tCore %d", i);
+            tasks.push_back(std::thread(timeAccess, i, 3));
+            if (set) i++;
+            set = true;
+        }
+        if (set) continue;
+        tasks.push_back(std::thread(deadFunc, i));
+    }
+
+    /* Perform 1000 Experiments */
+    for (int i = 0; i < 1000; i++) {
+        currTask = 0;
+        memset(shared_data, 0, sizeof(shared_data));
+        currTask = 1;
+
+        /* Threads Take Over */
+        
+        while (currTask != 4) { /* Wait for Threads to complete Tasks, then start again. */ }
+    }
+
+    currTask = -1;  // Mark All Threads Complete
+
+    // Terminate safely.
+    for (int i = 0; i < tasks.size(); i++)
+        tasks[i].join();
+
+    tasks.clear();   
+    printf("\n\n"); 
+    /* Produce Output Table */
+    printf("\n\tLAT\t|\t4 x Remote L2 Exclusive");
+    printf("\n\t--------+-----------------------");
+    for (int i=0; i < 500; i++) {
+        double perc = (double)latencies[i] / (double)10;
+        if (perc > 1) {
+            int temp, digits;
+            std::cout << "\n";
+
+            // Latency Column
+            std::cout << "\t" << i << "\t|";
+
+            // L1 Load Count Column
+            std::cout << "\t" << latencies[i];
+            temp = latencies[i];
+            digits = 0; while (temp != 0) { temp /= 10; digits++; }
+            for (int i=digits; i < 5; i++) {
+                std::cout << " ";
+            }
+            if (perc > 1) printf("(%.2f%%)", perc);
+            else printf("      ");
+            std::cout << "\t";
+            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", i, (double)(i - overhead)/num_loads);
         }
     }
 
 }
 
 int main(int argc, char *argv[]) {
-    if (argc > 1)
-        TARGET_CORE = atoi(argv[1]);   // Parse Parameters
+    if (argc < 3) {
+        printf("\nIncorrect Arguments Provided:");
+        printf("\n\t./run.sh READ_STATE TARGET_CORE");
+        printf("\n\nWhere READ_STATE = [ M | E | S ]\n\n");
+        return 0;
+    }
 
-    int overhead = latencyOverhead();
-    coherence(overhead);
+    if (argc > 2)
+        TARGET_CORE = atoi(argv[2]);   // Parse Parameters
+
+    if (argv[1] == std::string("M")) {
+        printf("\n//------ Testing Remote Modified Read ------\\\\");
+        remoteModified(timingOverhead());
+        printf("\n\n\\\\------------------------------------------//");
+    }
+    else if (argv[1] == std::string("E")) {
+        printf("\n//------ Testing Remote Exclusive Read ------\\\\");
+        remoteExclusive(timingOverhead());
+        printf("\n\n\\\\------------------------------------------//");
+    }
+    else if (argv[1] == std::string("S")) {
+        printf("\n//------ Testing Remote Shared Read ------\\\\");
+        remoteShared(timingOverhead());
+        printf("\n\n\\\\------------------------------------------//");
+    }
+    else {
+        printf("\nInvalid Remote Read State Supplied");
+    }
 
     printf("\n");
 }
