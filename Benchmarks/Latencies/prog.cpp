@@ -433,7 +433,7 @@ void latencyL2(int overhead) {
     }
 
     /* Produce Output Table */
-    printf("\n\tLAT\t|\t3 x L2 Hit");
+    printf("\n\tLAT\t|\t1 x L2 Hit");
     printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc = (double)latencies[i] / (double)10;
@@ -786,7 +786,7 @@ int main(int argc, char *argv[]) {
         {
             perror("sched_setaffinity");
         }
-        printf("\nSet CPU Affinity to CPU%d\n\n", 0);
+        printf("\nPinning to Core %d", 0);
     #endif
 
     if ((std::string)argv[1] == "1") {
