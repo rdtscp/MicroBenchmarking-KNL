@@ -189,7 +189,7 @@ int currTask = 0;
 int iteration = 0;
 int latencies[500];
 
-static int shared_data[L2_SIZE_B/4];                        // Allocate enough space to fill up L2 Cache.
+int *shared_data;                        // Allocate enough space to fill up L2 Cache.
 
 // Timing variables.
 uint32_t start_hi, start_lo, end_hi, end_lo;                // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
@@ -206,7 +206,7 @@ uint64_t latency;
  */
 
 /* Measures the time to load from L1 Cache, prints findings in ASCII Table */
-void setModified(int coreNum, int runState) {
+void writeData(int coreNum, int runState) {
     CorePin(coreNum);
 
     // While we are on a valid task, continue running.
@@ -227,30 +227,7 @@ void setModified(int coreNum, int runState) {
 
 }
 
-void setExclusive(int coreNum, int runState) {
-    CorePin(coreNum);
-
-    // While we are on a valid task, continue running.
-    while (currTask != -1) {
-        // If its this Task's turn.
-        if (currTask == runState) {
-
-            /* Payload */
-                volatile int temp = 0;
-                for (int i=0; i < (6 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
-                    temp = shared_data[i];
-                    temp += 1;                                     // Use temp
-                }
-            /***********/
-
-            asm volatile("MFENCE");
-            currTask++;
-        }
-    }
-
-}
-
-void setShared(int coreNum, int runState) {
+void readData(int coreNum, int runState) {
     CorePin(coreNum);
 
     // While we are on a valid task, continue running.
@@ -280,7 +257,7 @@ void timeAccess(int coreNum, int runState) {
     while (currTask != -1) {
         // If its this Task's turn.
         if (currTask  == runState) {
-    
+
             /* Payload */
                 start_hi = 0; end_hi = 0;
                 start_lo = 0; end_lo = 0;
@@ -432,12 +409,12 @@ void remoteModified(int overhead) {
     for (int i = 0; i < NUM_CORES; i++) {
         bool set = false;
         if (i == BASE_CORE) {
-            printf("\n\t => Pinning setModified to\tCore %d", i);
-            tasks.push_back(std::thread(setModified, i, 1));
+            printf("\n\t => Pinning writeData as Task 1 to\tCore %d", i);
+            tasks.push_back(std::thread(writeData, i, 1));
             set = true;
         }
         if (i == TARGET_CORE) {
-            printf("\n\t => Pinning timeAccess  to\tCore %d", i);
+            printf("\n\t => Pinning timeAccess as Task 2  to\tCore %d", i);
             tasks.push_back(std::thread(timeAccess, i, 2));
             if (set) i++;
             set = true;
@@ -449,12 +426,14 @@ void remoteModified(int overhead) {
     /* Perform 1000 Experiments */
     for (int i = 0; i < 1000; i++) {
         currTask = 0;
+        shared_data = (int*)malloc(L2_SIZE_B);
         memset(shared_data, 0, sizeof(shared_data));
         currTask = 1;
 
         /* Threads Take Over */
         
         while (currTask != 3) { /* Wait for Threads to complete Tasks, then start again. */ }
+        delete shared_data;
     }
 
     currTask = -1;  // Mark All Threads Complete
@@ -508,12 +487,12 @@ void remoteExclusive(int overhead) {
     for (int i = 0; i < NUM_CORES; i++) {
         bool set = false;
         if (i == BASE_CORE) {
-            printf("\n\t => Pinning setExclusive to\tCore %d", i);
-            tasks.push_back(std::thread(setExclusive, i, 1));
+            printf("\n\t => Pinning readData as Task 1 to\tCore %d", i);
+            tasks.push_back(std::thread(readData, i, 1));
             set = true;
         }
         if (i == TARGET_CORE) {
-            printf("\n\t => Pinning timeAccess to\tCore %d", i);
+            printf("\n\t => Pinning timeAccess as Task 2 to\tCore %d", i);
             tasks.push_back(std::thread(timeAccess, i, 2));
             if (set) i++;
             set = true;
@@ -525,12 +504,14 @@ void remoteExclusive(int overhead) {
     /* Perform 1000 Experiments */
     for (int i = 0; i < 1000; i++) {
         currTask = 0;
+        shared_data = (int*)malloc(L2_SIZE_B);
         memset(shared_data, 0, sizeof(shared_data));
         currTask = 1;
 
         /* Threads Take Over */
         
         while (currTask != 3) { /* Wait for Threads to complete Tasks, then start again. */ }
+        delete shared_data;
     }
 
     currTask = -1;  // Mark All Threads Complete
@@ -581,21 +562,22 @@ void remoteShared(int overhead) {
     /* Spin Up Thread for each Core */
     std::vector<std::thread> tasks;
     int shareCore = 1;
+    // Always want BASE_CORE to contain line in S state.
     if (shareCore == TARGET_CORE) shareCore++;
     for (int i = 0; i < NUM_CORES; i++) {
         bool set = false;
-        if (i == BASE_CORE) {
-            printf("\n\t => Pinning setExclusive to\tCore %d", i);
-            tasks.push_back(std::thread(setExclusive, i, 1));
+        if (i == shareCore && !set) {
+            printf("\n\t => Pinning readData as Task 1 to\tCore %d", i);
+            tasks.push_back(std::thread(readData, i, 1));
             set = true;
         }
-        if (i == shareCore) {
-            printf("\n\t => Pinning setShared to\tCore %d", i);
-            tasks.push_back(std::thread(setShared, i, 2));
+        if (i == BASE_CORE && !set) {
+            printf("\n\t => Pinning readData as Task 2 to\tCore %d", i);
+            tasks.push_back(std::thread(readData, i, 2));
             set = true;
         }
-        if (i == TARGET_CORE) {
-            printf("\n\t => Pinning timeAccess to\tCore %d", i);
+        if (i == TARGET_CORE && !set) {
+            printf("\n\t => Pinning timeAccess as Task 3 to\tCore %d", i);
             tasks.push_back(std::thread(timeAccess, i, 3));
             if (set) i++;
             set = true;
@@ -607,12 +589,14 @@ void remoteShared(int overhead) {
     /* Perform 1000 Experiments */
     for (int i = 0; i < 1000; i++) {
         currTask = 0;
+        shared_data = (int*)malloc(L2_SIZE_B);
         memset(shared_data, 0, sizeof(shared_data));
         currTask = 1;
 
         /* Threads Take Over */
         
         while (currTask != 4) { /* Wait for Threads to complete Tasks, then start again. */ }
+        delete shared_data;
     }
 
     currTask = -1;  // Mark All Threads Complete
