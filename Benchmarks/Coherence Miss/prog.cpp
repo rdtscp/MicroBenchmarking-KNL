@@ -191,11 +191,6 @@ int latencies[500];
 
 int *shared_data;                        // Allocate enough space to fill up L2 Cache.
 
-// Timing variables.
-uint32_t start_hi, start_lo, end_hi, end_lo;                // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
-uint64_t start, end;                                        // 64bit integers to hold the start/end timestamp counter values.
-uint64_t latency;
-
 /*
  *      Benchmark Stages:
  *      0   -   Set up Threads using Cores 0 and 15
@@ -208,14 +203,14 @@ uint64_t latency;
 /* Measures the time to load from L1 Cache, prints findings in ASCII Table */
 void writeData(int coreNum, int runState) {
     CorePin(coreNum);
-
+    warmup();
     // While we are on a valid task, continue running.
     while (currTask != -1) {
         // If its this Task's turn.
         if (currTask == runState) {   
-
+            // printf("\n%d Writing Data", coreNum);
             /* Payload */
-                for (int i=0; i < (26 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
+                for (int i=0; i < (100 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
                     shared_data[i] = i + 1;
                 }
             /***********/
@@ -229,15 +224,15 @@ void writeData(int coreNum, int runState) {
 
 void readData(int coreNum, int runState) {
     CorePin(coreNum);
-
+    warmup();
     // While we are on a valid task, continue running.
     while (currTask != -1) {
         // If its this Task's turn.
         if (currTask == runState) {
-
+            // printf("\n%d Reading Data", coreNum);
             /* Payload */
                 volatile int temp = 0;
-                for (int i=0; i < (20 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
+                for (int i=0; i < (100 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
                     temp = shared_data[i];
                     temp += 1;                                     // Use temp
                 }
@@ -252,12 +247,16 @@ void readData(int coreNum, int runState) {
 
 void timeAccess(int coreNum, int runState) {
     CorePin(coreNum);
-    
+    warmup();
+    // Timing variables.
+    uint32_t start_hi, start_lo, end_hi, end_lo;                // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
+    uint64_t start, end;                                        // 64bit integers to hold the start/end timestamp counter values.
+    uint64_t latency;
     // While we are on a valid task, continue running.
     while (currTask != -1) {
         // If its this Task's turn.
         if (currTask  == runState) {
-
+            // printf("\n%d Timing Reads", coreNum);
             /* Payload */
                 start_hi = 0; end_hi = 0;
                 start_lo = 0; end_lo = 0;
@@ -266,7 +265,7 @@ void timeAccess(int coreNum, int runState) {
                 // Take a starting measurement of the TSC.
                 start_timestamp(&start_hi, &start_lo);
 
-                // Perform 6 Loads to L1 Data from different Cache Lines.
+                // Perform 13 Loads to L2 Data from a different Cache.
                 asm volatile (
                     "\n\t#1 L1 Load Inst"
                     "\n\tmov %1, %0"
@@ -326,6 +325,66 @@ void timeAccess(int coreNum, int runState) {
                     :
                 );
 
+                // Perform 13 Loads to L1 Data from a different Cache.
+                asm volatile (
+                    "\n\t#1 L1 Load Inst"
+                    "\n\tmov %1, %0"
+                    "\n\tMFENCE"
+                    "\n\tmov %3, %2"
+                    "\n\tMFENCE"
+                    "\n\tmov %5, %4"
+                    "\n\tMFENCE"
+                    "\n\tmov %7, %6"
+                    "\n\tMFENCE"
+                    "\n\tmov %9, %8"
+                    "\n\tMFENCE"
+                    "\n\tmov %11, %10"
+                    "\n\tMFENCE"
+                    "\n\tmov %13, %12"
+                    "\n\tMFENCE"
+                    "\n\tmov %15, %14"
+                    "\n\tMFENCE"
+                    "\n\tmov %17, %16"
+                    "\n\tMFENCE"
+                    "\n\tmov %19, %18"
+                    "\n\tMFENCE"
+                    "\n\tmov %21, %20"
+                    "\n\tMFENCE"
+                    "\n\tmov %23, %22"
+                    "\n\tMFENCE"
+                    "\n\tmov %25, %24"
+                    "\n\tMFENCE"
+                    :
+                    "=r"(shared_data[17 * STRIDE]),
+                    "=r"(shared_data[18 * STRIDE]),
+                    "=r"(shared_data[19 * STRIDE]),
+                    "=r"(shared_data[20 * STRIDE]),
+                    "=r"(shared_data[21 * STRIDE]),
+                    "=r"(shared_data[22 * STRIDE]),
+                    "=r"(shared_data[23 * STRIDE]),
+                    "=r"(shared_data[24 * STRIDE]),
+                    "=r"(shared_data[25 * STRIDE]),
+                    "=r"(shared_data[26 * STRIDE]),
+                    "=r"(shared_data[27 * STRIDE]),
+                    "=r"(shared_data[28 * STRIDE]),
+                    "=r"(shared_data[29 * STRIDE])
+                    :
+                    "r"(shared_data[17 * STRIDE]),
+                    "r"(shared_data[18 * STRIDE]),
+                    "r"(shared_data[19 * STRIDE]),
+                    "r"(shared_data[20 * STRIDE]),
+                    "r"(shared_data[21 * STRIDE]),
+                    "r"(shared_data[22 * STRIDE]),
+                    "r"(shared_data[23 * STRIDE]),
+                    "r"(shared_data[24 * STRIDE]),
+                    "r"(shared_data[25 * STRIDE]),
+                    "r"(shared_data[26 * STRIDE]),
+                    "r"(shared_data[27 * STRIDE]),
+                    "r"(shared_data[28 * STRIDE]),
+                    "r"(shared_data[29 * STRIDE])
+                    :
+                );
+
                 // Take an ending measurement of the TSC.
                 end_timestamp(&end_hi, &end_lo);   
 
@@ -334,7 +393,7 @@ void timeAccess(int coreNum, int runState) {
                 end     = ( ((uint64_t)end_hi << 32) | end_lo );
                 latency = (end - start);
 
-                latency = (int)((latency - overhead)/13);
+                latency = (int)((latency - overhead)/26);
 
                 // Increment the appropriate indexes of our latency tracking arrays.
                 if (latency < 500) latencies[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
@@ -395,6 +454,21 @@ int timingOverhead() {
         asm volatile("MFENCE");
         asm volatile("MFENCE");
         asm volatile("MFENCE");
+
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
@@ -417,7 +491,6 @@ int timingOverhead() {
 
 /* Performs Remote Read to Modified Line Benchmarks */
 void remoteModified() {
-    double num_loads = 4.0;
     currTask = 0;
     
     printf("\n\n\n  --- \tMeasure Remote Modified Lines\n");
@@ -453,6 +526,10 @@ void remoteModified() {
         /* Threads Take Over */
         
         while (currTask != 3) { /* Wait for Threads to complete Tasks, then start again. */ }
+        
+        for (int j = 0; j < (100 * STRIDE); j++)
+            asm volatile("CLFLUSH (%0)"::"r"(&shared_data[j]):);
+
         delete shared_data;
     }
 
@@ -494,7 +571,6 @@ void remoteModified() {
 
 /* Performs Remote Read to Exclusive Line Benchmarks */
 void remoteExclusive() {
-    double num_loads = 4.0;
     currTask = 0;
     
     printf("\n\n\n  --- \tMeasure Remote Exclusive Lines\n");
@@ -531,6 +607,10 @@ void remoteExclusive() {
         /* Threads Take Over */
         
         while (currTask != 3) { /* Wait for Threads to complete Tasks, then start again. */ }
+
+        for (int j = 0; j < (100 * STRIDE); j++)
+            asm volatile("CLFLUSH (%0)"::"r"(&shared_data[j]):);
+
         delete shared_data;
     }
 
@@ -572,7 +652,6 @@ void remoteExclusive() {
 
 /* Performs Remote Read to Shared Line Benchmarks */
 void remoteShared() {
-    double num_loads = 4.0;
     currTask = 0;
     
     printf("\n\n\n  --- \tMeasure Remote Shared Lines\n");
@@ -616,6 +695,10 @@ void remoteShared() {
         /* Threads Take Over */
         
         while (currTask != 4) { /* Wait for Threads to complete Tasks, then start again. */ }
+
+        for (int j = 0; j < (100 * STRIDE); j++)
+            asm volatile("CLFLUSH (%0)"::"r"(&shared_data[j]):);
+
         delete shared_data;
     }
 
