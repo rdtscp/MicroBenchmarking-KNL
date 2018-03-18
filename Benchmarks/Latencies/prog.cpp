@@ -140,7 +140,7 @@ int latencyL1Overhead() {
         uint64_t latency;
 
     // Do 1000 test runs of gathering the overhead.
-    printf("\n\n\nL1 Overhead\n");
+    // printf("\n\n\nL1 Overhead\n");
     latency = 0;
     for (int i=0; i < 1000; i++) {
         warmup();
@@ -151,6 +151,14 @@ int latencyL1Overhead() {
         start_timestamp(&start_hi, &start_lo);
         // Calculating overhead, so no instruction to be timed here.
         asm volatile("#Overhead Latency");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
         asm volatile("MFENCE");
         asm volatile("MFENCE");
         asm volatile("MFENCE");
@@ -168,44 +176,40 @@ int latencyL1Overhead() {
         if (latency < 500) latencies[latency]++;            // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
     }
 
-    printf("\n\tLAT\t|\tO/Head");
-    printf("\n\t--------+-----------------------");
+    // printf("\n\tLAT\t|\tO/Head");
+    // printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc      = (double)latencies[i] / (double)10;
         std::string cycles;
         if (perc > 1) {
             int temp, digits;
-            std::cout << "\n";
+            // std::cout << "\n";
 
             // STD::COUT
                 // Latency Column
-                std::cout << "\t" << i << "\t|";
+                // std::cout << "\t" << i << "\t|";
 
                 // Overhead Column
-                    std::cout << "\t" << latencies[i];
+                    // std::cout << "\t" << latencies[i];
                     temp = latencies[i];
                     digits = 0; while (temp != 0) { temp /= 10; digits++; }
-                    for (int i=digits; i < 5; i++) {
-                        std::cout << " ";
-                    }
-                    if (perc > 1) printf("(%.2f%%)", perc);
-                    else printf("      ");
-                    std::cout << "\t";
+                    // for (int i=digits; i < 5; i++) {
+                    //     std::cout << " ";
+                    // }
+                    // if (perc > 1) printf("(%.2f%%)", perc);
+                    // else printf("      ");
+                    // std::cout << "\t";
                     if (perc > 50) {
-                        printf(" --> %d Cycles", i);
+                        // printf(" --> %d Cycles", i);
                         output = i;
                     }
         }
     }
     return output;
 }
-
-
-
-
 /* Measures the time to load from L1 Cache, prints findings in ASCII Table */
 void latencyL1(int overhead) {
-    double num_loads = 5.0;
+    double num_loads = 13.0;
     int latencies[500];                                     // i'th element of array indicates how many times an L1 Load took i cycles.
     memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
 
@@ -215,7 +219,8 @@ void latencyL1(int overhead) {
         uint64_t latency;
 
     // Do 1000 test runs of timing an L1 Load.
-    printf("\n\n\nTesting L1\n");
+    printf("\n\n\nTesting L1");
+    printf("\nTiming Overhead: %d\n", overhead);
     latency = 0;
     int l1_data[L1_SIZE_B/4];                               // Allocate enough space to fill up L1 Cache.
     for (int i=0; i < 1000; i++) {
@@ -224,7 +229,7 @@ void latencyL1(int overhead) {
         start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
         end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
 
-        for (int i=L1_START_IDX; i < (L1_START_IDX +(6 * STRIDE)); i++)             // Access required data beforehand, so that it is in L1 Cache.
+        for (int i=L1_START_IDX; i < (L1_START_IDX +(15 * STRIDE)); i++)             // Access required data beforehand, so that it is in L1 Cache.
             l1_data[i] = i + 1;
 
         asm volatile("MFENCE");
@@ -244,18 +249,50 @@ void latencyL1(int overhead) {
             "\n\tMFENCE"
             "\n\tmov %9, %8"
             "\n\tMFENCE"
+            "\n\tmov %11, %10"
+            "\n\tMFENCE"
+            "\n\tmov %13, %12"
+            "\n\tMFENCE"
+            "\n\tmov %15, %14"
+            "\n\tMFENCE"
+            "\n\tmov %17, %16"
+            "\n\tMFENCE"
+            "\n\tmov %19, %18"
+            "\n\tMFENCE"
+            "\n\tmov %21, %20"
+            "\n\tMFENCE"
+            "\n\tmov %23, %22"
+            "\n\tMFENCE"
+            "\n\tmov %25, %24"
+            "\n\tMFENCE"
             :
             "=r"(l1_data[0 * STRIDE]),
             "=r"(l1_data[1 * STRIDE]),
             "=r"(l1_data[2 * STRIDE]),
             "=r"(l1_data[3 * STRIDE]),
-            "=r"(l1_data[4 * STRIDE])
+            "=r"(l1_data[4 * STRIDE]),
+            "=r"(l1_data[5 * STRIDE]),
+            "=r"(l1_data[6 * STRIDE]),
+            "=r"(l1_data[7 * STRIDE]),
+            "=r"(l1_data[8 * STRIDE]),
+            "=r"(l1_data[9 * STRIDE]),
+            "=r"(l1_data[10 * STRIDE]),
+            "=r"(l1_data[11 * STRIDE]),
+            "=r"(l1_data[12 * STRIDE])
             :
             "r"(l1_data[0 * STRIDE]),
             "r"(l1_data[1 * STRIDE]),
             "r"(l1_data[2 * STRIDE]),
             "r"(l1_data[3 * STRIDE]),
-            "r"(l1_data[4 * STRIDE])
+            "r"(l1_data[4 * STRIDE]),
+            "r"(l1_data[5 * STRIDE]),
+            "r"(l1_data[6 * STRIDE]),
+            "r"(l1_data[7 * STRIDE]),
+            "r"(l1_data[8 * STRIDE]),
+            "r"(l1_data[9 * STRIDE]),
+            "r"(l1_data[10 * STRIDE]),
+            "r"(l1_data[11 * STRIDE]),
+            "r"(l1_data[12 * STRIDE])
             :
         );
 
@@ -267,12 +304,14 @@ void latencyL1(int overhead) {
          end     = ( ((uint64_t)end_hi << 32) | end_lo );
         latency = (end - start);
 
+        latency = (int)((latency - overhead)/13);
+
         // Increment the appropriate indexes of our latency tracking arrays.
         if (latency < 500) latencies[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
     }
 
     /* Produce Output Table */
-    printf("\n\tLAT\t|\t6 x L1 Hit");
+    printf("\n\tLAT\t|\tL1 Hit");
     printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc = (double)latencies[i] / (double)10;
@@ -293,10 +332,12 @@ void latencyL1(int overhead) {
             if (perc > 1) printf("(%.2f%%)", perc);
             else printf("      ");
             std::cout << "\t";
-            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", (i - overhead), (double)((double)(i - overhead)/num_loads));
+            if (perc > 50) printf(" --> %d Cycle(s)", i);
         }
     }
 }
+
+
 
 int latencyL2Overhead() {
     int output = 0;
@@ -309,7 +350,7 @@ int latencyL2Overhead() {
         uint64_t latency;
 
     // Do 1000 test runs of gathering the overhead.
-    printf("\n\n\nL2 Overhead\n");
+    // printf("\n\n\nL2 Overhead\n");
     latency = 0;
     for (int i=0; i < 1000; i++) {
         warmup();
@@ -320,6 +361,18 @@ int latencyL2Overhead() {
         start_timestamp(&start_hi, &start_lo);
         // Calculating overhead, so no instruction to be timed here.
         asm volatile("#Overhead Latency");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
         asm volatile("MFENCE");
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
@@ -333,41 +386,40 @@ int latencyL2Overhead() {
         if (latency < 500) latencies[latency]++;            // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
     }
 
-    printf("\n\tLAT\t|\tO/Head");
-    printf("\n\t--------+-----------------------");
+    // printf("\n\tLAT\t|\tO/Head");
+    // printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc      = (double)latencies[i] / (double)10;
         std::string cycles;
         if (perc > 1) {
             int temp, digits;
-            std::cout << "\n";
+            // std::cout << "\n";
 
             // STD::COUT
                 // Latency Column
-                std::cout << "\t" << i << "\t|";
+                // std::cout << "\t" << i << "\t|";
 
                 // Overhead Column
-                    std::cout << "\t" << latencies[i];
+                    // std::cout << "\t" << latencies[i];
                     temp = latencies[i];
                     digits = 0; while (temp != 0) { temp /= 10; digits++; }
-                    for (int i=digits; i < 5; i++) {
-                        std::cout << " ";
-                    }
-                    if (perc > 1) printf("(%.2f%%)", perc);
-                    else printf("      ");
-                    std::cout << "\t";
+                    // for (int i=digits; i < 5; i++) {
+                    //     std::cout << " ";
+                    // }
+                    // if (perc > 1) printf("(%.2f%%)", perc);
+                    // else printf("      ");
+                    // std::cout << "\t";
                     if (perc > 50) {
-                        printf(" --> %d Cycles", i);
+                        // printf(" --> %d Cycles", i);
                         output = i;
                     }
         }
     }
     return output;
 }
-
 /* Measures the time to load from L2 Cache, prints findings in ASCII Table */
 void latencyL2(int overhead) {
-    double num_loads = 1.0;
+    double num_loads = 13.0;
     int latencies[500];                                     // i'th element of array indicates how many times an L1 Load took i cycles.
     memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
 
@@ -377,9 +429,9 @@ void latencyL2(int overhead) {
         uint64_t latency;
 
     // Do 1000 test runs of timing an L2 Load.
-    printf("\n\n\nTesting L2\n");
+    printf("\n\n\nTesting L2");
+    printf("\nTiming Overhead: %d\n", overhead);
     latency = 0;
-    // volatile int *l2_data = (int*)malloc(L2_SIZE_B);
     
     for (int i=0; i < 1000; i++) {
 
@@ -408,15 +460,63 @@ void latencyL2(int overhead) {
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
 
-        // Perform 6 Loads to L1 Data from different Cache Lines.
+        // Perform 13 Loads to L2 Data from different Cache Lines.
         asm volatile (
             "\n\t#1 L1 Load Inst"
             "\n\tmov %1, %0"
             "\n\tMFENCE"
+            "\n\tmov %3, %2"
+            "\n\tMFENCE"
+            "\n\tmov %5, %4"
+            "\n\tMFENCE"
+            "\n\tmov %7, %6"
+            "\n\tMFENCE"
+            "\n\tmov %9, %8"
+            "\n\tMFENCE"
+            "\n\tmov %11, %10"
+            "\n\tMFENCE"
+            "\n\tmov %13, %12"
+            "\n\tMFENCE"
+            "\n\tmov %15, %14"
+            "\n\tMFENCE"
+            "\n\tmov %17, %16"
+            "\n\tMFENCE"
+            "\n\tmov %19, %18"
+            "\n\tMFENCE"
+            "\n\tmov %21, %20"
+            "\n\tMFENCE"
+            "\n\tmov %23, %22"
+            "\n\tMFENCE"
+            "\n\tmov %25, %24"
+            "\n\tMFENCE"
             :
-            "=r"(l2_data[L2_START_IDX + 0 * STRIDE])
+            "=r"(l2_data[L2_START_IDX + 0 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 1 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 2 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 3 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 4 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 5 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 6 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 7 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 8 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 9 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 10 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 11 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 12 * STRIDE])
             :
-            "r"(l2_data[L2_START_IDX + 0 * STRIDE])
+            "r"(l2_data[L2_START_IDX + 0 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 1 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 2 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 3 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 4 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 5 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 6 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 7 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 8 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 9 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 10 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 11 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 12 * STRIDE])
             :
         );
 
@@ -428,12 +528,14 @@ void latencyL2(int overhead) {
          end     = ( ((uint64_t)end_hi << 32) | end_lo );
         latency = (end - start);
 
+        latency = (int)((latency - overhead)/13);
+
         // Increment the appropriate indexes of our latency tracking arrays.
         if (latency < 500) latencies[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
     }
 
     /* Produce Output Table */
-    printf("\n\tLAT\t|\t1 x L2 Hit");
+    printf("\n\tLAT\t|\tL2 Hit");
     printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc = (double)latencies[i] / (double)10;
@@ -454,7 +556,7 @@ void latencyL2(int overhead) {
             if (perc > 1) printf("(%.2f%%)", perc);
             else printf("      ");
             std::cout << "\t";
-            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", i, (double)(i - overhead)/num_loads);
+            if (perc > 50) printf(" --> %d Cycle(s)", i);
         }
     }
 }
@@ -472,7 +574,7 @@ int latencyMEMOverhead() {
         uint64_t latency;
 
     // Do 1000 test runs of gathering the overhead.
-    printf("\n\n\nMEM Overhead\n");
+    // printf("\n\n\nMEM Overhead\n");
     latency = 0;
     for (int i=0; i < 1000; i++) {
         warmup();
@@ -496,41 +598,40 @@ int latencyMEMOverhead() {
         if (latency < 500) latencies[latency]++;            // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
     }
 
-    printf("\n\tLAT\t|\tO/Head");
-    printf("\n\t--------+-----------------------");
+    // printf("\n\tLAT\t|\tO/Head");
+    // printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc      = (double)latencies[i] / (double)10;
         std::string cycles;
         if (perc > 1) {
             int temp, digits;
-            std::cout << "\n";
+            // std::cout << "\n";
 
             // STD::COUT
                 // Latency Column
-                std::cout << "\t" << i << "\t|";
+                // std::cout << "\t" << i << "\t|";
 
                 // Overhead Column
-                    std::cout << "\t" << latencies[i];
+                    // std::cout << "\t" << latencies[i];
                     temp = latencies[i];
-                    digits = 0; while (temp != 0) { temp /= 10; digits++; }
-                    for (int i=digits; i < 5; i++) {
-                        std::cout << " ";
-                    }
-                    if (perc > 1) printf("(%.2f%%)", perc);
-                    else printf("      ");
-                    std::cout << "\t";
+                    // digits = 0; while (temp != 0) { temp /= 10; digits++; }
+                    // for (int i=digits; i < 5; i++) {
+                    //     std::cout << " ";
+                    // }
+                    // if (perc > 1) printf("(%.2f%%)", perc);
+                    // else printf("      ");
+                    // std::cout << "\t";
                     if (perc > 50) {
-                        printf(" --> %d Cycles", i);
+                        // printf(" --> %d Cycles", i);
                         output = i;
                     }
         }
     }
     return output;
 }
-
 /* Measures the time to load from L1 Cache, prints findings in ASCII Table */
 void latencyMEM(int overhead) {
-    int latencies[500];                                     // i'th element of array indicates how many times an L1 Load took i cycles.
+    int latencies[500];                                    // i'th element of array indicates how many times an L1 Load took i cycles.
     memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
 
     // Timing variables.
@@ -539,7 +640,8 @@ void latencyMEM(int overhead) {
         uint64_t latency;
 
     // Do 1000 test runs of timing an L2 Load.
-    printf("\n\n\nTesting %s\n", mem_name.c_str());
+    printf("\n\n\nTesting %s", mem_name.c_str());
+    printf("\nTiming Overhead: %d\n", overhead);
     latency = 0;
     int data[MEM_ARR_B/4];                               // Allocate enough space to fill up L2 Cache.
     for (int i=0; i < 1000; i++) {
@@ -570,7 +672,8 @@ void latencyMEM(int overhead) {
             "r"(&data[134 * STRIDE]),
             "r"(&data[135 * STRIDE]),
             "r"(&data[136 * STRIDE]),
-            "r"(&data[137 * STRIDE])
+            "r"(&data[137 * STRIDE]),
+            "r"(&data[138 * STRIDE])
             :
         );
 
@@ -593,7 +696,7 @@ void latencyMEM(int overhead) {
         // Convert the 4 x 32bit values into 2 x 64bit values.
          start   = ( ((uint64_t)start_hi << 32) | start_lo );
          end     = ( ((uint64_t)end_hi << 32) | end_lo );
-        latency = (end - start);
+        latency = (end - start) - overhead;
 
         // Increment the appropriate indexes of our latency tracking arrays.
         if (latency < 500) latencies[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
@@ -621,7 +724,7 @@ void latencyMEM(int overhead) {
             if (perc > 1) printf("(%.2f%%)", perc);
             else printf("      ");
             std::cout << "\t";
-            if (perc > 50) printf(" --> %d Cycles => %d Cycles Per Load", i, (i - overhead));
+            if (perc > 50) printf(" --> %d Cycle(s)", i);
         }
     }
 }
@@ -629,12 +732,13 @@ void latencyMEM(int overhead) {
 
 
 void latencySanity() {
-    int div_lat[500];                                       // i'th element of array indicates how many times a DIV took i cycles.
-    memset(div_lat, 0, sizeof(div_lat));                    // Initialise count of DIV latencies to 0.
+    double num_tests = 13.0;
+    int cwde_lat[500];                                       // i'th element of array indicates how many times a CWDE took i cycles.
+    memset(cwde_lat, 0, sizeof(cwde_lat));                    // Initialise count of CWDE latencies to 0.
     int pause_lat[500];                                     // i'th element of array indicates how many times a PAUSE took i cycles.
     memset(pause_lat, 0, sizeof(pause_lat));                // Initialise count of PAUSE latencies to 0.
-    int f2xm1_lat[500];                                     // i'th element of array indicates how many times a PAUSE took i cycles.
-    memset(f2xm1_lat, 0, sizeof(f2xm1_lat));                // Initialise count of PAUSE latencies to 0.
+    int cwd_lat[500];                                     // i'th element of array indicates how many times a CWD took i cycles.
+    memset(cwd_lat, 0, sizeof(cwd_lat));                // Initialise count of CWD latencies to 0.
 
     printf("\n\n\nSanity Checks\n");
     // Timing variables.
@@ -642,7 +746,7 @@ void latencySanity() {
         uint64_t start, end;                                // 64bit integers to hold the start/end timestamp counter values.
         uint64_t latency;
 
-    // Do 1000 test runs of timing a DIV Inst.
+    // Do 1000 test runs of timing a CWDE Inst.
     latency = 0;
     for (int i=0; i < 1000; i++) {
         warmup();
@@ -656,7 +760,20 @@ void latencySanity() {
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
         // Load the data variable, which will exist in the L1 Cache.
-        x = y / z;
+        asm volatile("CWDE");
+        asm volatile("CWDE");
+        asm volatile("CWDE");
+        asm volatile("CWDE");
+        asm volatile("CWDE");
+        asm volatile("CWDE");
+        asm volatile("CWDE");
+        asm volatile("CWDE");
+        asm volatile("CWDE");
+        asm volatile("CWDE");
+        asm volatile("CWDE");
+        asm volatile("CWDE");
+        asm volatile("CWDE");
+        asm volatile("CWDE");
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
@@ -665,8 +782,10 @@ void latencySanity() {
         end     = ( ((uint64_t)end_hi << 32) | end_lo );
         latency = end - start;
 
+        latency = (int)((latency - 39) / 13.0);
+
         // Increment the appropriate indexes of our latency tracking arrays.
-        if (latency < 500) div_lat[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
+        if (latency < 500) cwde_lat[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
     }
 
     // Do 1000 test runs of timing a PAUSE Inst.
@@ -684,6 +803,18 @@ void latencySanity() {
         start_timestamp(&start_hi, &start_lo);
         // Load the data variable, which will exist in the L1 Cache.
         asm volatile ("PAUSE");
+        asm volatile ("PAUSE");
+        asm volatile ("PAUSE");
+        asm volatile ("PAUSE");
+        asm volatile ("PAUSE");
+        asm volatile ("PAUSE");
+        asm volatile ("PAUSE");
+        asm volatile ("PAUSE");
+        asm volatile ("PAUSE");
+        asm volatile ("PAUSE");
+        asm volatile ("PAUSE");
+        asm volatile ("PAUSE");
+        asm volatile ("PAUSE");
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
@@ -692,12 +823,14 @@ void latencySanity() {
         end     = ( ((uint64_t)end_hi << 32) | end_lo );
         latency = end - start;
 
+        latency = (int)((latency - 39) / 13.0);
+
         // Increment the appropriate indexes of our latency tracking arrays.
         if (latency < 500) pause_lat[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
         // else printf("\nTiming PAUSE Anomaly: %lli Cycles", latency);
     }
 
-    // Do 1000 test runs of timing a F2XM1 Inst.
+    // Do 1000 test runs of timing a CWD Inst.
     latency = 0;
     for (int i=0; i < 1000; i++) {
         warmup();
@@ -708,8 +841,20 @@ void latencySanity() {
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
         // Load the data variable, which will exist in the L1 Cache.
-        // asm volatile("mov %%eax, %0": "=m"(data[0]):: "eax", "memory");
-        asm volatile("F2XM1");
+        asm volatile("CWD");
+        asm volatile("CWD");
+        asm volatile("CWD");
+        asm volatile("CWD");
+        asm volatile("CWD");
+        asm volatile("CWD");
+        asm volatile("CWD");
+        asm volatile("CWD");
+        asm volatile("CWD");
+        asm volatile("CWD");
+        asm volatile("CWD");
+        asm volatile("CWD");
+        asm volatile("CWD");
+        asm volatile("CWD");
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
@@ -718,19 +863,21 @@ void latencySanity() {
         end     = ( ((uint64_t)end_hi << 32) | end_lo );
         latency = end - start;
 
+        latency = (int)((latency - 39) / 13.0);
+
         // Increment the appropriate indexes of our latency tracking arrays.
-        if (latency < 500) f2xm1_lat[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
+        if (latency < 500) cwd_lat[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
     }
 
     // Output results
-    printf("\n\tLAT\t|\tDIV(29-42)\t|\tPAUSE(25)\t|\tF2XM1(100-400)");
+    printf("\n\tLAT\t|\tCWDE(1)\t\t|\tPAUSE(25)\t|\tCWD(7)");
     printf("\n\t--------+-----------------------+-----------------------+-----------------------");
     for (int i=0; i < 500; i++) {
-        double div_perc     = (double)div_lat[i]   / (double)10;
-        double pse_perc     = (double)pause_lat[i] / (double)10;
-        double xm1_perc     = (double)f2xm1_lat[i] / (double)10;
+        double cwde_perc    = (double)cwde_lat[i]   / (double)10;
+        double pse_perc     = (double)pause_lat[i]  / (double)10;
+        double cwd_perc     = (double)cwd_lat[i]    / (double)10;
         std::string cycles;
-        if (div_perc > 1 || pse_perc > 1 || xm1_perc > 1) {
+        if (cwde_perc > 1 || pse_perc > 1 || cwd_perc > 1) {
             int temp, digits;
             std::cout << "\n";
 
@@ -738,14 +885,14 @@ void latencySanity() {
                 // Latency Column
                 std::cout << "\t" << i << "\t|";
 
-                // DIV Column
-                    std::cout << "\t" << div_lat[i];
-                    temp = div_lat[i];
+                // CWDE Column
+                    std::cout << "\t" << cwde_lat[i];
+                    temp = cwde_lat[i];
                     digits = 0; while (temp != 0) { temp /= 10; digits++; }
                     for (int i=digits; i < 5; i++) {
                         std::cout << " ";
                     }
-                    if (div_perc > 1) printf("(%.2f%%)", div_perc);
+                    if (cwde_perc > 1) printf("(%.2f%%)", cwde_perc);
                     else printf("      ");
                     std::cout << "\t|";
 
@@ -760,19 +907,20 @@ void latencySanity() {
                     else printf("      ");
                     std::cout << "\t|";
 
-                // F2XM1 Column
-                    std::cout << "\t" << f2xm1_lat[i];
+                // CWD Column
+                    std::cout << "\t" << cwd_lat[i];
                     temp = pause_lat[i];
                     digits = 0; while (temp != 0) { temp /= 10; digits++; }
                     for (int i=digits; i < 5; i++) {
                         std::cout << " ";
                     }
-                    if (xm1_perc > 1) printf("(%.2f%%)", xm1_perc);
+                    if (cwd_perc > 1) printf("(%.2f%%)", cwd_perc);
                     else printf("      ");
                     std::cout << "\t";
         }
     }
 }
+
 
 int main(int argc, char *argv[]) {
     #ifdef __linux__
