@@ -535,7 +535,7 @@ void latencyL2(int overhead) {
     }
 
     /* Produce Output Table */
-    printf("\n\tLAT\t|\tL2 Hit");
+    printf("\n\tLAT\t|\tLocal L2 (M) Hit");
     printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc = (double)latencies[i] / (double)10;
