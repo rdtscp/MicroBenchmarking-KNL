@@ -184,7 +184,7 @@ unsigned long tacc_rdtscp(int *chip, int *core) {
 
 
 //******** DATA ********
-bool verbose = 0;
+int overhead = 0;
 int currTask = 0;
 int iteration = 0;
 int latencies[500];
@@ -215,7 +215,7 @@ void writeData(int coreNum, int runState) {
         if (currTask == runState) {   
 
             /* Payload */
-                for (int i=0; i < (6 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
+                for (int i=0; i < (26 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
                     shared_data[i] = i + 1;
                 }
             /***********/
@@ -237,7 +237,7 @@ void readData(int coreNum, int runState) {
 
             /* Payload */
                 volatile int temp = 0;
-                for (int i=0; i < (6 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
+                for (int i=0; i < (20 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
                     temp = shared_data[i];
                     temp += 1;                                     // Use temp
                 }
@@ -270,23 +270,59 @@ void timeAccess(int coreNum, int runState) {
                 asm volatile (
                     "\n\t#1 L1 Load Inst"
                     "\n\tmov %1, %0"
-                    "\n\t MFENCE"
+                    "\n\tMFENCE"
                     "\n\tmov %3, %2"
-                    "\n\t MFENCE"
+                    "\n\tMFENCE"
                     "\n\tmov %5, %4"
-                    "\n\t MFENCE"
+                    "\n\tMFENCE"
                     "\n\tmov %7, %6"
-                    "\n\t MFENCE"
+                    "\n\tMFENCE"
+                    "\n\tmov %9, %8"
+                    "\n\tMFENCE"
+                    "\n\tmov %11, %10"
+                    "\n\tMFENCE"
+                    "\n\tmov %13, %12"
+                    "\n\tMFENCE"
+                    "\n\tmov %15, %14"
+                    "\n\tMFENCE"
+                    "\n\tmov %17, %16"
+                    "\n\tMFENCE"
+                    "\n\tmov %19, %18"
+                    "\n\tMFENCE"
+                    "\n\tmov %21, %20"
+                    "\n\tMFENCE"
+                    "\n\tmov %23, %22"
+                    "\n\tMFENCE"
+                    "\n\tmov %25, %24"
+                    "\n\tMFENCE"
                     :
-                    "=r"(shared_data[0 * STRIDE]),
-                    "=r"(shared_data[1 * STRIDE]),
-                    "=r"(shared_data[2 * STRIDE]),
-                    "=r"(shared_data[3 * STRIDE])
+                    "=r"(shared_data[4 * STRIDE]),
+                    "=r"(shared_data[5 * STRIDE]),
+                    "=r"(shared_data[6 * STRIDE]),
+                    "=r"(shared_data[7 * STRIDE]),
+                    "=r"(shared_data[8 * STRIDE]),
+                    "=r"(shared_data[9 * STRIDE]),
+                    "=r"(shared_data[10 * STRIDE]),
+                    "=r"(shared_data[11 * STRIDE]),
+                    "=r"(shared_data[12 * STRIDE]),
+                    "=r"(shared_data[13 * STRIDE]),
+                    "=r"(shared_data[14 * STRIDE]),
+                    "=r"(shared_data[15 * STRIDE]),
+                    "=r"(shared_data[16 * STRIDE])
                     :
-                    "r"(shared_data[0 * STRIDE]),
-                    "r"(shared_data[1 * STRIDE]),
-                    "r"(shared_data[2 * STRIDE]),
-                    "r"(shared_data[3 * STRIDE])
+                    "r"(shared_data[4 * STRIDE]),
+                    "r"(shared_data[5 * STRIDE]),
+                    "r"(shared_data[6 * STRIDE]),
+                    "r"(shared_data[7 * STRIDE]),
+                    "r"(shared_data[8 * STRIDE]),
+                    "r"(shared_data[9 * STRIDE]),
+                    "r"(shared_data[10 * STRIDE]),
+                    "r"(shared_data[11 * STRIDE]),
+                    "r"(shared_data[12 * STRIDE]),
+                    "r"(shared_data[13 * STRIDE]),
+                    "r"(shared_data[14 * STRIDE]),
+                    "r"(shared_data[15 * STRIDE]),
+                    "r"(shared_data[16 * STRIDE])
                     :
                 );
 
@@ -297,6 +333,8 @@ void timeAccess(int coreNum, int runState) {
                 start   = ( ((uint64_t)start_hi << 32) | start_lo );
                 end     = ( ((uint64_t)end_hi << 32) | end_lo );
                 latency = (end - start);
+
+                latency = (int)((latency - overhead)/13);
 
                 // Increment the appropriate indexes of our latency tracking arrays.
                 if (latency < 500) latencies[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
@@ -334,7 +372,6 @@ int timingOverhead() {
         uint64_t latency;
 
     // Do 1000 test runs of gathering the overhead.
-    printf("\n\n\n  --- \tTesting Overhead\n");
     latency = 0;
     for (int i=0; i < 1000; i++) {
         warmup();
@@ -349,8 +386,15 @@ int timingOverhead() {
         asm volatile("MFENCE");
         asm volatile("MFENCE");
         asm volatile("MFENCE");
-        // asm volatile("MFENCE");
-        // asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
@@ -363,40 +407,16 @@ int timingOverhead() {
         if (latency < 500) latencies[latency]++;            // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
     }
 
-    printf("\n\tLAT\t|\tO/Head");
-    printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc      = (double)latencies[i] / (double)10;
-        std::string cycles;
-        if (perc > 1) {
-            int temp, digits;
-            std::cout << "\n";
-
-            // STD::COUT
-                // Latency Column
-                std::cout << "\t" << i << "\t|";
-
-                // Overhead Column
-                    std::cout << "\t" << latencies[i];
-                    temp = latencies[i];
-                    digits = 0; while (temp != 0) { temp /= 10; digits++; }
-                    for (int i=digits; i < 5; i++) {
-                        std::cout << " ";
-                    }
-                    if (perc > 1) printf("(%.2f%%)", perc);
-                    else printf("      ");
-                    std::cout << "\t";
-                    if (perc > 50) {
-                        printf(" --> %d Cycles", i);
-                        output = i;
-                    }
-        }
+        if (perc > 50)
+            output = i;
     }
     return output;
 }
 
 /* Performs Remote Read to Modified Line Benchmarks */
-void remoteModified(int overhead) {
+void remoteModified() {
     double num_loads = 4.0;
     currTask = 0;
     
@@ -445,7 +465,7 @@ void remoteModified(int overhead) {
     tasks.clear();
     printf("\n\n");
     /* Produce Output Table */
-    printf("\n\tLAT\t|\t4 x Remote L2 Modified");
+    printf("\n\tLAT\t|\tRemote L2 Modified");
     printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc = (double)latencies[i] / (double)10;
@@ -466,14 +486,14 @@ void remoteModified(int overhead) {
             if (perc > 1) printf("(%.2f%%)", perc);
             else printf("      ");
             std::cout << "\t";
-            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", i, (double)(i - overhead)/num_loads);
+            if (perc > 50) printf(" --> %d Cycle(s)", i);
         }
     }
 
 }
 
 /* Performs Remote Read to Exclusive Line Benchmarks */
-void remoteExclusive(int overhead) {
+void remoteExclusive() {
     double num_loads = 4.0;
     currTask = 0;
     
@@ -523,7 +543,7 @@ void remoteExclusive(int overhead) {
     tasks.clear();
     printf("\n\n");
     /* Produce Output Table */
-    printf("\n\tLAT\t|\t4 x Remote L2 Exclusive");
+    printf("\n\tLAT\t|\tRemote L2 Exclusive");
     printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc = (double)latencies[i] / (double)10;
@@ -544,14 +564,14 @@ void remoteExclusive(int overhead) {
             if (perc > 1) printf("(%.2f%%)", perc);
             else printf("      ");
             std::cout << "\t";
-            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", i, (double)(i - overhead)/num_loads);
+            if (perc > 50) printf(" --> %d Cycle(s)", i);
         }
     }
 
 }
 
 /* Performs Remote Read to Shared Line Benchmarks */
-void remoteShared(int overhead) {
+void remoteShared() {
     double num_loads = 4.0;
     currTask = 0;
     
@@ -608,7 +628,7 @@ void remoteShared(int overhead) {
     tasks.clear();   
     printf("\n\n"); 
     /* Produce Output Table */
-    printf("\n\tLAT\t|\t4 x Remote L2 Exclusive");
+    printf("\n\tLAT\t|\tRemote L2 Shared");
     printf("\n\t--------+-----------------------");
     for (int i=0; i < 500; i++) {
         double perc = (double)latencies[i] / (double)10;
@@ -629,7 +649,7 @@ void remoteShared(int overhead) {
             if (perc > 1) printf("(%.2f%%)", perc);
             else printf("      ");
             std::cout << "\t";
-            if (perc > 50) printf(" --> %d Cycles => %.2f Cycles Per Load", i, (double)(i - overhead)/num_loads);
+            if (perc > 50) printf(" --> %d Cycle(s)", i);
         }
     }
 
@@ -646,19 +666,21 @@ int main(int argc, char *argv[]) {
     if (argc > 2)
         TARGET_CORE = atoi(argv[2]);   // Parse Parameters
 
+    overhead = timingOverhead();
+
     if (argv[1] == std::string("M")) {
         printf("\n//------ Testing Remote Modified Read ------\\\\");
-        remoteModified(timingOverhead());
+        remoteModified();
         printf("\n\n\\\\------------------------------------------//");
     }
     else if (argv[1] == std::string("E")) {
         printf("\n//------ Testing Remote Exclusive Read ------\\\\");
-        remoteExclusive(timingOverhead());
+        remoteExclusive();
         printf("\n\n\\\\------------------------------------------//");
     }
     else if (argv[1] == std::string("S")) {
         printf("\n//------ Testing Remote Shared Read ------\\\\");
-        remoteShared(timingOverhead());
+        remoteShared();
         printf("\n\n\\\\------------------------------------------//");
     }
     else {
