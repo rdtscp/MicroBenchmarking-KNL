@@ -2,6 +2,7 @@
 
 if [ -z "$1" ]
   then
+    echo "./run.sh {0,1} "
     echo "No argument supplied"
     echo "  0 - DDR"
     echo "  1 - MCDRAM"

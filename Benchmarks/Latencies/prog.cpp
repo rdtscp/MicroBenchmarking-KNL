@@ -338,7 +338,6 @@ void latencyL1(int overhead) {
 }
 
 
-
 int latencyL2Overhead() {
     int output = 0;
     int latencies[500];                                     // i'th element of array indicates how many times a NOP took i cycles.
@@ -417,6 +416,7 @@ int latencyL2Overhead() {
     }
     return output;
 }
+
 /* Measures the time to load from L2 Cache, prints findings in ASCII Table */
 void latencyL2(int overhead) {
     double num_loads = 13.0;
@@ -937,9 +937,8 @@ int main(int argc, char *argv[]) {
         printf("\nPinning to Core %d", 0);
     #endif
 
-    if ((std::string)argv[1] == "1") {
+    if ((std::string)argv[1] == "1")
         mem_name = "MCDRAM";
-    }
 
     // int overhead = latencyOverhead();
     latencyL1(latencyL1Overhead());
