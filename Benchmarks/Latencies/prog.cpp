@@ -164,6 +164,20 @@ int latencyL1Overhead() {
         asm volatile("MFENCE");
         asm volatile("MFENCE");
         asm volatile("MFENCE");
+
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
@@ -209,7 +223,6 @@ int latencyL1Overhead() {
 }
 /* Measures the time to load from L1 Cache, prints findings in ASCII Table */
 void latencyL1(int overhead) {
-    double num_loads = 13.0;
     int latencies[500];                                     // i'th element of array indicates how many times an L1 Load took i cycles.
     memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
 
@@ -229,13 +242,12 @@ void latencyL1(int overhead) {
         start_hi = 0; start_lo = 0;                         // Initialise values of start_hi/start_lo so the values are already in L1 Cache.
         end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
 
-        for (int i=L1_START_IDX; i < (L1_START_IDX +(15 * STRIDE)); i++)             // Access required data beforehand, so that it is in L1 Cache.
+        for (int i=L1_START_IDX; i < (L1_START_IDX +(32 * STRIDE)); i++)             // Access required data beforehand, so that it is in L1 Cache.
             l1_data[i] = i + 1;
 
         asm volatile("MFENCE");
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
-
         // Perform 6 Loads to L1 Data from different Cache Lines.
         asm volatile (
             "\n\t#1 L1 Load Inst"
@@ -296,6 +308,65 @@ void latencyL1(int overhead) {
             :
         );
 
+        asm volatile (
+            "\n\t#1 L1 Load Inst"
+            "\n\tmov %1, %0"
+            "\n\tMFENCE"
+            "\n\tmov %3, %2"
+            "\n\tMFENCE"
+            "\n\tmov %5, %4"
+            "\n\tMFENCE"
+            "\n\tmov %7, %6"
+            "\n\tMFENCE"
+            "\n\tmov %9, %8"
+            "\n\tMFENCE"
+            "\n\tmov %11, %10"
+            "\n\tMFENCE"
+            "\n\tmov %13, %12"
+            "\n\tMFENCE"
+            "\n\tmov %15, %14"
+            "\n\tMFENCE"
+            "\n\tmov %17, %16"
+            "\n\tMFENCE"
+            "\n\tmov %19, %18"
+            "\n\tMFENCE"
+            "\n\tmov %21, %20"
+            "\n\tMFENCE"
+            "\n\tmov %23, %22"
+            "\n\tMFENCE"
+            "\n\tmov %25, %24"
+            "\n\tMFENCE"
+            :
+            "=r"(l1_data[13 * STRIDE]),
+            "=r"(l1_data[14 * STRIDE]),
+            "=r"(l1_data[15 * STRIDE]),
+            "=r"(l1_data[16 * STRIDE]),
+            "=r"(l1_data[17 * STRIDE]),
+            "=r"(l1_data[18 * STRIDE]),
+            "=r"(l1_data[19 * STRIDE]),
+            "=r"(l1_data[20 * STRIDE]),
+            "=r"(l1_data[21 * STRIDE]),
+            "=r"(l1_data[22 * STRIDE]),
+            "=r"(l1_data[23 * STRIDE]),
+            "=r"(l1_data[24 * STRIDE]),
+            "=r"(l1_data[25 * STRIDE])
+            :
+            "r"(l1_data[13 * STRIDE]),
+            "r"(l1_data[14 * STRIDE]),
+            "r"(l1_data[15 * STRIDE]),
+            "r"(l1_data[16 * STRIDE]),
+            "r"(l1_data[17 * STRIDE]),
+            "r"(l1_data[18 * STRIDE]),
+            "r"(l1_data[19 * STRIDE]),
+            "r"(l1_data[20 * STRIDE]),
+            "r"(l1_data[21 * STRIDE]),
+            "r"(l1_data[22 * STRIDE]),
+            "r"(l1_data[23 * STRIDE]),
+            "r"(l1_data[24 * STRIDE]),
+            "r"(l1_data[25 * STRIDE])
+            :
+        );
+
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);   
 
@@ -304,7 +375,7 @@ void latencyL1(int overhead) {
          end     = ( ((uint64_t)end_hi << 32) | end_lo );
         latency = (end - start);
 
-        latency = (int)((latency - overhead)/13);
+        latency = (int)((latency - overhead)/26.0);
 
         // Increment the appropriate indexes of our latency tracking arrays.
         if (latency < 500) latencies[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
@@ -373,6 +444,21 @@ int latencyL2Overhead() {
         asm volatile("MFENCE");
         asm volatile("MFENCE");
         asm volatile("MFENCE");
+        
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
@@ -419,7 +505,6 @@ int latencyL2Overhead() {
 
 /* Measures the time to load from L2 Cache, prints findings in ASCII Table */
 void latencyL2(int overhead) {
-    double num_loads = 13.0;
     int latencies[500];                                     // i'th element of array indicates how many times an L1 Load took i cycles.
     memset(latencies, 0, sizeof(latencies));                // Initialise count of overhead latencies to 0.
 
@@ -459,10 +544,9 @@ void latencyL2(int overhead) {
 
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
-
-        // Perform 13 Loads to L2 Data from different Cache Lines.
+        
         asm volatile (
-            "\n\t#1 L1 Load Inst"
+            "\n\t#1 L2 Load Inst"
             "\n\tmov %1, %0"
             "\n\tMFENCE"
             "\n\tmov %3, %2"
@@ -519,6 +603,64 @@ void latencyL2(int overhead) {
             "r"(l2_data[L2_START_IDX + 12 * STRIDE])
             :
         );
+        asm volatile (
+            "\n\t#1 L2 Load Inst"
+            "\n\tmov %1, %0"
+            "\n\tMFENCE"
+            "\n\tmov %3, %2"
+            "\n\tMFENCE"
+            "\n\tmov %5, %4"
+            "\n\tMFENCE"
+            "\n\tmov %7, %6"
+            "\n\tMFENCE"
+            "\n\tmov %9, %8"
+            "\n\tMFENCE"
+            "\n\tmov %11, %10"
+            "\n\tMFENCE"
+            "\n\tmov %13, %12"
+            "\n\tMFENCE"
+            "\n\tmov %15, %14"
+            "\n\tMFENCE"
+            "\n\tmov %17, %16"
+            "\n\tMFENCE"
+            "\n\tmov %19, %18"
+            "\n\tMFENCE"
+            "\n\tmov %21, %20"
+            "\n\tMFENCE"
+            "\n\tmov %23, %22"
+            "\n\tMFENCE"
+            "\n\tmov %25, %24"
+            "\n\tMFENCE"
+            :
+            "=r"(l2_data[L2_START_IDX + 13 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 14 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 15 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 16 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 17 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 18 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 19 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 20 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 21 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 22 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 23 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 24 * STRIDE]),
+            "=r"(l2_data[L2_START_IDX + 25 * STRIDE])
+            :
+            "r"(l2_data[L2_START_IDX + 13 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 14 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 15 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 16 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 17 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 18 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 19 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 20 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 21 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 22 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 23 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 24 * STRIDE]),
+            "r"(l2_data[L2_START_IDX + 25 * STRIDE])
+            :
+        );
 
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);   
@@ -528,7 +670,7 @@ void latencyL2(int overhead) {
          end     = ( ((uint64_t)end_hi << 32) | end_lo );
         latency = (end - start);
 
-        latency = (int)((latency - overhead)/13);
+        latency = (int)((latency - overhead)/26.0);
 
         // Increment the appropriate indexes of our latency tracking arrays.
         if (latency < 500) latencies[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
@@ -586,6 +728,18 @@ int latencyMEMOverhead() {
         // Calculating overhead, so no instruction to be timed here.
         asm volatile("#Overhead Latency");
         asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
+        asm volatile("MFENCE");
         // Take an ending measurement of the TSC.
         end_timestamp(&end_hi, &end_lo);
 
@@ -603,28 +757,8 @@ int latencyMEMOverhead() {
     for (int i=0; i < 500; i++) {
         double perc      = (double)latencies[i] / (double)10;
         std::string cycles;
-        if (perc > 1) {
-            int temp, digits;
-            // std::cout << "\n";
-
-            // STD::COUT
-                // Latency Column
-                // std::cout << "\t" << i << "\t|";
-
-                // Overhead Column
-                    // std::cout << "\t" << latencies[i];
-                    temp = latencies[i];
-                    // digits = 0; while (temp != 0) { temp /= 10; digits++; }
-                    // for (int i=digits; i < 5; i++) {
-                    //     std::cout << " ";
-                    // }
-                    // if (perc > 1) printf("(%.2f%%)", perc);
-                    // else printf("      ");
-                    // std::cout << "\t";
-                    if (perc > 50) {
-                        // printf(" --> %d Cycles", i);
-                        output = i;
-                    }
+        if (perc > 50) {
+            output = i;
         }
     }
     return output;
@@ -651,43 +785,83 @@ void latencyMEM(int overhead) {
         end_hi   = 0; end_lo   = 0;                         // Initialise values of end_hi/end_lo so the values are already in L1 Cache.
 
         // Flush Surrounding Cache Lines.
-        asm volatile(
-            "\n\tCLFLUSH (%0)"
-            "\n\tCLFLUSH (%1)"
-            "\n\tCLFLUSH (%2)"
-            "\n\tCLFLUSH (%3)"
-            "\n\tCLFLUSH (%4)"
-            "\n\tCLFLUSH (%5)"
-            "\n\tCLFLUSH (%6)"
-            "\n\tCLFLUSH (%7)"
-            "\n\tCLFLUSH (%8)"
-            "\n\tCLFLUSH (%9)"
-            ::
-            "r"(&data[128 * STRIDE]),
-            "r"(&data[129 * STRIDE]),
-            "r"(&data[130 * STRIDE]),
-            "r"(&data[131 * STRIDE]),
-            "r"(&data[132 * STRIDE]),
-            "r"(&data[133 * STRIDE]),
-            "r"(&data[134 * STRIDE]),
-            "r"(&data[135 * STRIDE]),
-            "r"(&data[136 * STRIDE]),
-            "r"(&data[137 * STRIDE]),
-            "r"(&data[138 * STRIDE])
-            :
-        );
+        for (int j=0; j < (200*STRIDE); j++) {
+            asm volatile(
+                "CLFLUSH (%0)"::
+                "r"(&data[j]):
+            );
+        }
+
+        asm volatile("MFENCE");
 
         // Take a starting measurement of the TSC.
         start_timestamp(&start_hi, &start_lo);
 
         // Perform Load to Flushed Line.
         asm volatile (
-            "\n\t#1 L1 Load Inst"
             "\n\tmov %%eax, %0"
             "\n\tMFENCE"
-            ::
-            "r"(data[133 * STRIDE])
-            :
+            ::"r"(data[131 * STRIDE]):
+        );
+        asm volatile (
+            "\n\tmov %%eax, %0"
+            "\n\tMFENCE"
+            ::"r"(data[143 * STRIDE]):
+        );
+        asm volatile (
+            "\n\tmov %%eax, %0"
+            "\n\tMFENCE"
+            ::"r"(data[132 * STRIDE]):
+        );
+        asm volatile (
+            "\n\tmov %%eax, %0"
+            "\n\tMFENCE"
+            ::"r"(data[142 * STRIDE]):
+        );
+        asm volatile (
+            "\n\tmov %%eax, %0"
+            "\n\tMFENCE"
+            ::"r"(data[133 * STRIDE]):
+        );
+        asm volatile (
+            "\n\tmov %%eax, %0"
+            "\n\tMFENCE"
+            ::"r"(data[141 * STRIDE]):
+        );
+        asm volatile (
+            "\n\tmov %%eax, %0"
+            "\n\tMFENCE"
+            ::"r"(data[134 * STRIDE]):
+        );
+        asm volatile (
+            "\n\tmov %%eax, %0"
+            "\n\tMFENCE"
+            ::"r"(data[140 * STRIDE]):
+        );
+        asm volatile (
+            "\n\tmov %%eax, %0"
+            "\n\tMFENCE"
+            ::"r"(data[135 * STRIDE]):
+        );
+        asm volatile (
+            "\n\tmov %%eax, %0"
+            "\n\tMFENCE"
+            ::"r"(data[139 * STRIDE]):
+        );
+        asm volatile (
+            "\n\tmov %%eax, %0"
+            "\n\tMFENCE"
+            ::"r"(data[136 * STRIDE]):
+        );
+        asm volatile (
+            "\n\tmov %%eax, %0"
+            "\n\tMFENCE"
+            ::"r"(data[138 * STRIDE]):
+        );
+        asm volatile (
+            "\n\tmov %%eax, %0"
+            "\n\tMFENCE"
+            ::"r"(data[137 * STRIDE]):
         );
 
         // Take an ending measurement of the TSC.
@@ -696,7 +870,7 @@ void latencyMEM(int overhead) {
         // Convert the 4 x 32bit values into 2 x 64bit values.
          start   = ( ((uint64_t)start_hi << 32) | start_lo );
          end     = ( ((uint64_t)end_hi << 32) | end_lo );
-        latency = (end - start) - overhead;
+        latency = (((end - start) - overhead)/13.0);
 
         // Increment the appropriate indexes of our latency tracking arrays.
         if (latency < 500) latencies[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
