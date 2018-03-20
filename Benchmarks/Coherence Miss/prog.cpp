@@ -18,7 +18,6 @@
 
 #ifdef __linux__    // Linux only
     #include <sched.h>  // sched_setaffinity
-    #include <omp.h>
     cpu_set_t mask;
 #endif
 /*
@@ -184,11 +183,13 @@ unsigned long tacc_rdtscp(int *chip, int *core) {
 
 
 //******** DATA ********
+int tasks_setup = 0;
 int overhead = 0;
 int currTask = 0;
 int iteration = 0;
 int latencies[500];
 
+int dead_data[L1_SIZE_B * 4];
 int *shared_data;                        // Allocate enough space to fill up L2 Cache.
 
 /*
@@ -202,16 +203,31 @@ int *shared_data;                        // Allocate enough space to fill up L2 
 
 /* Measures the time to load from L1 Cache, prints findings in ASCII Table */
 void writeData(int coreNum, int runState) {
-    CorePin(coreNum);
+    if (CorePin(coreNum) != 1) printf("\nERROR PINNING CORE");
+    int chip = -1;
+    int core = -1;
+    tacc_rdtscp(&chip, &core);
+    printf("\n\t => writeData pinned to\t\t\tChip%d.Core%d", chip, core);
+    tasks_setup++;
     warmup();
     // While we are on a valid task, continue running.
     while (currTask != -1) {
         // If its this Task's turn.
-        if (currTask == runState) {   
+        if (currTask == runState) {
             // printf("\n%d Writing Data", coreNum);
             /* Payload */
-                for (int i=0; i < (100 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
-                    shared_data[i] = i + 1;
+                // Write data so it exists in Modified State.
+                for (int i=0; i < (300 * STRIDE); i++) {
+                    asm volatile (
+                        "\n\t#1 L1 Load Inst"
+                        "\n\tmov %0, %1"
+                        "\n\tMFENCE"
+                        :
+                        "=r"(shared_data[i])
+                        :
+                        "r"(i):
+                    );
+                    // shared_data[i] = i + 1;
                 }
             /***********/
 
@@ -223,7 +239,12 @@ void writeData(int coreNum, int runState) {
 }
 
 void readData(int coreNum, int runState) {
-    CorePin(coreNum);
+    if (CorePin(coreNum) != 1) printf("\nERROR PINNING CORE");
+    int chip = -1;
+    int core = -1;
+    tacc_rdtscp(&chip, &core);
+    printf("\n\t => readData pinned to\t\t\tChip%d.Core%d", chip, core);
+    tasks_setup++;
     warmup();
     // While we are on a valid task, continue running.
     while (currTask != -1) {
@@ -232,9 +253,19 @@ void readData(int coreNum, int runState) {
             // printf("\n%d Reading Data", coreNum);
             /* Payload */
                 volatile int temp = 0;
-                for (int i=0; i < (100 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
-                    temp = shared_data[i];
-                    temp += 1;                                     // Use temp
+                for (int i=0; i < (300 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
+                    // Move data.
+                    asm volatile (
+                        "\n\t#1 L2 Load Inst"
+                        "\n\tmov %1, %0"
+                        "\n\tMFENCE"
+                        :
+                        "=r"(shared_data[i])
+                        :
+                        "r"(shared_data[i])
+                        :
+                    );
+                    // asm volatile("CLFLUSH (%0)"::"r"(&shared_data[i]):);
                 }
             /***********/
 
@@ -246,7 +277,12 @@ void readData(int coreNum, int runState) {
 }
 
 void timeAccess(int coreNum, int runState) {
-    CorePin(coreNum);
+    if (CorePin(coreNum) != 1) printf("\nERROR PINNING CORE");
+    int chip = -1;
+    int core = -1;
+    tacc_rdtscp(&chip, &core);
+    printf("\n\t => timeAccess pinned to\t\tChip%d.Core%d", chip, core);
+    tasks_setup++;
     warmup();
     // Timing variables.
     uint32_t start_hi, start_lo, end_hi, end_lo;                // 32bit integers to hold the high/low 32 bits of start/end timestamp counter values.
@@ -384,7 +420,7 @@ void timeAccess(int coreNum, int runState) {
                     "r"(shared_data[29 * STRIDE])
                     :
                 );
-
+                
                 // Take an ending measurement of the TSC.
                 end_timestamp(&end_hi, &end_lo);   
 
@@ -393,7 +429,7 @@ void timeAccess(int coreNum, int runState) {
                 end     = ( ((uint64_t)end_hi << 32) | end_lo );
                 latency = (end - start);
 
-                latency = (int)((latency - overhead)/26);
+                latency = (int)((double)(latency - overhead)/26.0);
 
                 // Increment the appropriate indexes of our latency tracking arrays.
                 if (latency < 500) latencies[latency]++;        // Only increment the latency if its within an acceptable range, otherwise this latency was most likely a random error.
@@ -494,7 +530,6 @@ void remoteModified() {
     currTask = 0;
     
     printf("\n\n\n  --- \tMeasure Remote Modified Lines\n");
-    printf("\n\t => Target Core: %d\n", TARGET_CORE);
     memset(latencies, 0, sizeof(latencies));
 
     /* Spin Up Thread for each Core */
@@ -515,6 +550,9 @@ void remoteModified() {
         if (set) continue;
         tasks.push_back(std::thread(deadFunc, i));
     }
+
+    while (tasks_setup < 2) { /* Spin */ }
+    printf("\n\n\t => Starting Benchmarks.");
 
     /* Perform 1000 Experiments */
     for (int i = 0; i < 1000; i++) {
@@ -596,6 +634,10 @@ void remoteExclusive() {
         if (set) continue;
         tasks.push_back(std::thread(deadFunc, i));
     }
+
+    while (tasks_setup < 2) { /* Spin */ }
+
+    printf("\n\n\t => Starting Benchmarks.");
 
     /* Perform 1000 Experiments */
     for (int i = 0; i < 1000; i++) {
@@ -685,6 +727,10 @@ void remoteShared() {
         tasks.push_back(std::thread(deadFunc, i));
     }
 
+    while (tasks_setup < 3) { /* Spin */ }
+
+    printf("\n\n\t => Starting Benchmarks.");
+
     /* Perform 1000 Experiments */
     for (int i = 0; i < 1000; i++) {
         currTask = 0;
@@ -741,28 +787,40 @@ void remoteShared() {
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         printf("\nIncorrect Arguments Provided:");
-        printf("\n\t./run.sh READ_STATE TARGET_CORE");
+        printf("\n\t./run.sh BASE_CORE READ_STATE TARGET_CORE");
         printf("\n\nWhere READ_STATE = [ M | E | S ]\n\n");
         return 0;
     }
 
-    if (argc > 2)
-        TARGET_CORE = atoi(argv[2]);   // Parse Parameters
+    if (argc > 3) {
+        BASE_CORE = atoi(argv[1]);   // Parse Parameters
+        TARGET_CORE = atoi(argv[3]);   // Parse Parameters
+        
+    }
+
+    printf("\nParsed Arguments");
+    printf("hardware_concurrency: %d", std::thread::hardware_concurrency());
 
     overhead = timingOverhead();
 
-    if (argv[1] == std::string("M")) {
+    if (argv[2] == std::string("M")) {
         printf("\n//------ Testing Remote Modified Read ------\\\\");
+        printf("\n\n\t => BASE_CORE   = %d", BASE_CORE);
+        printf("\n\t => TARGET_CORE = %d", TARGET_CORE);
         remoteModified();
         printf("\n\n\\\\------------------------------------------//");
     }
-    else if (argv[1] == std::string("E")) {
+    else if (argv[2] == std::string("E")) {
         printf("\n//------ Testing Remote Exclusive Read ------\\\\");
+        printf("\n\n\t => BASE_CORE   = %d", BASE_CORE);
+        printf("\n\t => TARGET_CORE = %d", TARGET_CORE);
         remoteExclusive();
         printf("\n\n\\\\------------------------------------------//");
     }
-    else if (argv[1] == std::string("S")) {
+    else if (argv[2] == std::string("S")) {
         printf("\n//------ Testing Remote Shared Read ------\\\\");
+        printf("\n\n\t => BASE_CORE   = %d", BASE_CORE);
+        printf("\n\t => TARGET_CORE = %d", TARGET_CORE);
         remoteShared();
         printf("\n\n\\\\------------------------------------------//");
     }
