@@ -257,7 +257,6 @@ void readData(int coreNum, int runState) {
                         "r"(shared_data[i])
                         :
                     );
-                    // asm volatile("CLFLUSH (%0)"::"r"(&shared_data[i]):);
                 }
             /***********/
 
@@ -555,9 +554,6 @@ void remoteModified() {
         /* Threads Take Over */
         
         while (currTask != 3) { /* Wait for Threads to complete Tasks, then start again. */ }
-        
-        for (int j = 0; j < (100 * STRIDE); j++)
-            asm volatile("CLFLUSH (%0)"::"r"(&shared_data[j]):);
 
         delete shared_data;
     }
@@ -639,9 +635,6 @@ void remoteExclusive() {
         /* Threads Take Over */
         
         while (currTask != 3) { /* Wait for Threads to complete Tasks, then start again. */ }
-
-        for (int j = 0; j < (100 * STRIDE); j++)
-            asm volatile("CLFLUSH (%0)"::"r"(&shared_data[j]):);
 
         delete shared_data;
     }
@@ -727,9 +720,6 @@ void remoteShared() {
         /* Threads Take Over */
         
         while (currTask != 4) { /* Wait for Threads to complete Tasks, then start again. */ }
-
-        for (int j = 0; j < (100 * STRIDE); j++)
-            asm volatile("CLFLUSH (%0)"::"r"(&shared_data[j]):);
 
         delete shared_data;
     }
