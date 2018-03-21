@@ -1,3 +1,61 @@
+@ARTICLE{McCalpin1995,
+  author = {John D. McCalpin},
+  title = {Memory Bandwidth and Machine Balance in Current High Performance
+	Computers},
+  journal = {IEEE Computer Society Technical Committee on Computer Architecture
+	(TCCA) Newsletter},
+  year = {1995},
+  pages = {19--25},
+  month = dec,
+  abstract = {The ratio of cpu speed to memory speed in current high-performance
+	computers is growing rapidly, with significant implications for the
+	design and implementation of algorithms in scientific computing.
+	I present the results of a broad survey of memory bandwidth and machine
+	balance for a large variety of current computers, including uniprocessors,
+	vector processors, shared-memory systems, and districuted-memory
+	systems. The results are analyzed in terms of the sustainable data
+	transfer rates for uncached unit-stride vector operation for each
+	machine, and for each class.},
+  pdf = {http://tab.computer.org/tcca/NEWS/DEC95/dec95_mccalpin.ps}
+}
+
+@misc{cache-coherence-paper,
+    title = {Comparing Cache Architectures and Coherency Protocols on x86-64 Multicore SMP Systems},
+    author = {Daniel Hackenberg, Daniel Molka, Wolfgang E. Nagel},
+    yaer = {2009},
+    howpublished = {\url{https://tu-dresden.de/zih/forschung/ressourcen/dateien/abgeschlossene-projekte/benchit/2009_MICRO_authors_version.pdf?lang=en}}
+}
+
+@misc{mesif-paper,
+    author = {Daniel Molka, Daniel Hackenberg, Robert Schone, Wolfgang E. Nagel},
+    title = {Cache Coherence Protocol and Memory Performance of the Intel Haswell-EP Architecture},
+    year = {2015},
+    howpublished = {\url{https://tu-dresden.de/zih/forschung/ressourcen/dateien/abgeschlossene-projekte/benchit/2015_ICPP_authors_version.pdf?lang=en}}
+}
+
+@TECHREPORT{McCalpin2007,
+  author = {John D. McCalpin},
+  title = {STREAM: Sustainable Memory Bandwidth in High Performance Computers},
+  institution = {University of Virginia},
+  year = {1991-2007},
+  address = {Charlottesville, Virginia},
+  note = {A continually updated technical report.
+http://www.cs.virginia.edu/stream/},
+  url = {http://www.cs.virginia.edu/stream/}
+}
+
+@misc{STREAM,
+    title        = {STREAM Memory Bandwidth in HPC},
+    author       = {John D. McCalpin, Ph.D.},
+    howpublished = {\url{https://www.cs.virginia.edu/stream/}}
+}
+
+@misc{STREAM_FAQ,
+    title        = {STREAM FAQ},
+    author       = {John D. McCalpin, Ph.D.},
+    howpublished = {\url{https://www.cs.virginia.edu/stream/ref.html#what}}
+}
+
 @misc{intel_pres,
     author  = {Avinash Sodani},
     title   = {Knights Landing (KNL): 2nd Generation Intel® Xeon Phi™ Processor},
@@ -83,18 +141,6 @@
     author = {jain.pk},
     howpublished = {\url{https://www.codeproject.com/Articles/15971/Using-Inline-Assembly-in-C-C}},
     note = {Last Accessed: 2018-03-01}
-}
-
-@misc{STREAM,
-    title        = {STREAM Memory Bandwidth in HPC},
-    author       = {John D. McCalpin, Ph.D.},
-    howpublished = {\url{https://www.cs.virginia.edu/stream/}}
-}
-
-@misc{STREAM_FAQ,
-    title        = {STREAM FAQ},
-    author       = {John D. McCalpin, Ph.D.},
-    howpublished = {\url{https://www.cs.virginia.edu/stream/ref.html#what}}
 }
 
 @misc{numactl_repo,
