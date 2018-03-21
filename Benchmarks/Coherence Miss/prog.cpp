@@ -29,6 +29,7 @@
 
 int NUM_CORES               = 64;
 int BASE_CORE               = 0;
+int ALT_CORE                = 2;
 int TARGET_CORE             = 63;
 
 /* ---- DONT TOUCH BELOW ---- */
@@ -549,7 +550,6 @@ void remoteModified() {
     for (int i = 0; i < 1000; i++) {
         currTask = 0;
         shared_data = (int*)malloc(L2_SIZE_B);
-        memset(shared_data, 0, sizeof(shared_data));
         currTask = 1;
 
         /* Threads Take Over */
@@ -634,7 +634,6 @@ void remoteExclusive() {
     for (int i = 0; i < 1000; i++) {
         currTask = 0;
         shared_data = (int*)malloc(L2_SIZE_B);
-        memset(shared_data, 0, sizeof(shared_data));
         currTask = 1;
 
         /* Threads Take Over */
@@ -693,12 +692,9 @@ void remoteShared() {
 
     /* Spin Up Thread for each Core */
     std::vector<std::thread> tasks;
-    int shareCore = 1;
-    // Always want BASE_CORE to contain line in S state.
-    if (shareCore == TARGET_CORE) shareCore++;
     for (int i = 0; i < NUM_CORES; i++) {
         bool set = false;
-        if (i == shareCore && !set) {
+        if (i == ALT_CORE && !set) {
             printf("\n\t => Pinning readData as Task 1 to\tCore %d", i);
             tasks.push_back(std::thread(readData, i, 1));
             set = true;
@@ -726,7 +722,6 @@ void remoteShared() {
     for (int i = 0; i < 1000; i++) {
         currTask = 0;
         shared_data = (int*)malloc(L2_SIZE_B);
-        memset(shared_data, 0, sizeof(shared_data));
         currTask = 1;
 
         /* Threads Take Over */
@@ -783,41 +778,56 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    if (argc > 3) {
-        BASE_CORE = atoi(argv[1]);   // Parse Parameters
-        TARGET_CORE = atoi(argv[3]);   // Parse Parameters
-        
-    }
-
-    printf("\nParsed Arguments");
-    printf("hardware_concurrency: %d", std::thread::hardware_concurrency());
-
-    overhead = timingOverhead();
-
-    if (argv[2] == std::string("M")) {
-        printf("\n//------ Testing Remote Modified Read ------\\\\");
-        printf("\n\n\t => BASE_CORE   = %d", BASE_CORE);
-        printf("\n\t => TARGET_CORE = %d", TARGET_CORE);
-        remoteModified();
-        printf("\n\n\\\\------------------------------------------//");
-    }
-    else if (argv[2] == std::string("E")) {
-        printf("\n//------ Testing Remote Exclusive Read ------\\\\");
-        printf("\n\n\t => BASE_CORE   = %d", BASE_CORE);
-        printf("\n\t => TARGET_CORE = %d", TARGET_CORE);
-        remoteExclusive();
-        printf("\n\n\\\\------------------------------------------//");
-    }
-    else if (argv[2] == std::string("S")) {
-        printf("\n//------ Testing Remote Shared Read ------\\\\");
-        printf("\n\n\t => BASE_CORE   = %d", BASE_CORE);
-        printf("\n\t => TARGET_CORE = %d", TARGET_CORE);
-        remoteShared();
-        printf("\n\n\\\\------------------------------------------//");
+    // Shared Example
+    if (argc > 4) {
+        if (argv[3] == std::string("S")) {
+            BASE_CORE = atoi(argv[1]);
+            ALT_CORE = atoi(argv[2]);
+            TARGET_CORE = atoi(argv[4]);
+            
+            printf("\n//------ Testing Remote Shared Read ------\\\\");
+            printf("\n\n\t => BASE_CORE   = %d", BASE_CORE);
+            printf("\n\t => ALT_CORE    = %d", ALT_CORE);
+            printf("\n\t => TARGET_CORE = %d", TARGET_CORE);
+            remoteShared();
+            printf("\n\n\\\\------------------------------------------//");
+        }
+        else {
+            printf("\nIncorrect Arguments Passed");
+        }
     }
     else {
-        printf("\nInvalid Remote Read State Supplied");
-    }
+        if (argc > 3) {
+            BASE_CORE = atoi(argv[1]);   // Parse Parameters
+            TARGET_CORE = atoi(argv[3]);   // Parse Parameters
+            
+        }
 
+        printf("\nParsed Arguments");
+        // printf("hardware_concurrency: %d", std::thread::hardware_concurrency());
+
+        overhead = timingOverhead();
+
+        if (argv[2] == std::string("M")) {
+            printf("\n//------ Testing Remote Modified Read ------\\\\");
+            printf("\n\n\t => BASE_CORE   = %d", BASE_CORE);
+            printf("\n\t => TARGET_CORE = %d", TARGET_CORE);
+            remoteModified();
+            printf("\n\n\\\\------------------------------------------//");
+        }
+        else if (argv[2] == std::string("E")) {
+            printf("\n//------ Testing Remote Exclusive Read ------\\\\");
+            printf("\n\n\t => BASE_CORE   = %d", BASE_CORE);
+            printf("\n\t => TARGET_CORE = %d", TARGET_CORE);
+            remoteExclusive();
+            printf("\n\n\\\\------------------------------------------//");
+        }
+        else if (argv[2] == std::string("S")) {
+            printf("\nIncorrect Arguments for Shared State Supplied\n\n./run.sh BASE_CORE ALT_CORE S TARGET_CORE");
+        }
+        else {
+            printf("\nInvalid Remote Read State Supplied");
+        }
+    }
     printf("\n");
 }
