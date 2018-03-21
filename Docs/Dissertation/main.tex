@@ -5,6 +5,12 @@
 % \documentclass[minf,frontabs,twoside,singlespacing,parskip,deptreport]{infthesis}  % for MInf
 \usepackage{graphicx}
 \usepackage{hyperref}
+\usepackage{multirow}
+\usepackage{dirtytalk}
+\usepackage[utf8]{inputenc}
+\usepackage{minted}
+\usepackage{hyperref}
+
 \begin{document}
 
 \title{Microbenchmarking Intel Knights Landing}
@@ -23,13 +29,14 @@
 
 \maketitle
 
+
+
 \section*{Acknowledgements}
 @TODO 
 
 \tableofcontents
 
-%\pagenumbering{arabic}
-
+\pagenumbering{arabic}
 
 \chapter{Introduction}
 \section{Project Motivation}
@@ -37,7 +44,6 @@ With processors becoming increasingly complex, and the need for large data proce
 
 \section{Project Overview}
 The goal of this project is to evaluate the performance of Intel's 2nd Generation Xeon Phi processor's(code-named Knights Landing) memory system. The processor has a complex and interesting memory system, including new memory modules relative to predecessors. The project will include measuring the latencies of accessing the different memory components and bandwidths between them.
-
 
 \chapter{Background}
 \section{Computer Architecture}
@@ -63,7 +69,7 @@ x = a / b
 \verb
 y = x + 5
 \end{center}
-Where the value of \texttt{y} cannot be calculate until the result of \texttt{x} has been calculated, and so \texttt{y = x + 5} may hang at the \texttt{ID} stage, essentially halting the pipeline. However mitigations and workarounds to tackle instruction dependencies are out of the scope of the project, it is important to understand that modern processors may re-order instructions.
+Where the value of \texttt{y} cannot be calculate until the result of \texttt{x} has been calculated, and so \texttt{y = x + 5} may hang at the \texttt{ID} stage, essentially halting the pipeline. However pipelining techniques to tackle instruction dependencies are out of the scope of the project, but it is important to understand that modern processors may re-order instructions.
 
 
 \subsection{Caching}
@@ -81,13 +87,13 @@ Each processor line will have its own unique cache architecture. However it is t
         This has the advantage of being quick to access, as you simply lookup the line in cache where the address you wish to read/write to would exist, and if the tag of the cache-line and your address match, you have found your data quickly. \\
         This method can incur cache thrashing, which is when useful data is evicted from the cache, for example say you have two variables in memory, and they both map to the same cache line, the cache could be evicting and replacing this line potentially many times depending on the nature of the program and its use of the variables. \\
         \\
-        Figure \ref{fig:dir_map}, shows how lines in memory are mapped to one specific line in the cache.
+        Figure \ref{fig:dir-map}, shows how lines in memory are mapped to one specific line in the cache.
     }
     \begin{figure}[h]
         \includegraphics[width=4cm]{direct_mapped.png}
         \centering
         \caption{Direct Mapped Cache Diagram}
-        \label{fig:dir_map}
+        \label{fig:dir-map}
     \end{figure}
     
     \item{
@@ -96,13 +102,13 @@ Each processor line will have its own unique cache architecture. However it is t
         This has the advantage of dealing with cache trashing, where multiple lines can exist in the cache at the same time, that would not exist simultaneously in a Direct Mapped cache. \\
         In the case of a fully-associative cache, there is a large overhead in searching the cache for the data that you want, and so in practise, N-way set associative caches are often used in general purpose CPU's to get the best of both Direct Mapped and Fully Associative mappings. But that is not to say that there are no use-cases for Direct Mapped caches. \\
         \\
-        Figure \ref{fig:set_assoc}, shows how lines in memory are mapped to one \textbf{set} in the cache. Its important to note that the items within a \textbf{set} are evicted based on the architectures chosen replacement policy. 
+        Figure \ref{fig:set-assoc}, shows how lines in memory are mapped to one \textbf{set} in the cache. Its important to note that the items within a \textbf{set} are evicted based on the architectures chosen replacement policy. 
     }
     \begin{figure}[h]
         \includegraphics[width=6cm]{set_assoc.png}
         \centering
         \caption{N-way Set Associative Cache Diagram}
-        \label{fig:set_assoc}
+        \label{fig:set-assoc}
     \end{figure}
 \end{itemize}
 
@@ -118,9 +124,9 @@ This chapter will talk about what is unique about the KNL Architecture, and what
     \centering
     \caption{KNL Chip Layout}
     \protect\cite{intel_pres}
-    \label{fig:chip_overview}
+    \label{fig:chip-overview}
 \end{figure}
-Figure \ref{fig:chip_overview}, shows a top-down view of the architecture of the KNL chip. The chip is a mesh of 36 tiles.
+Figure \ref{fig:chip-overview}, shows a top-down view of the architecture of the KNL chip. The chip is a mesh of 36 tiles.
 
 \subsection{Tile}
 A tile consists of:
@@ -177,29 +183,499 @@ The KNL Chip includes a new layer of high-bandwidth memory that is spatially clo
     The 16GB of memory can be used to both extend DRAM, and cache it. It can be configured to use either 25\% or 50\% of the 16GB as a DRAM Cache, with the rest extending DRAM. This has the benefit of extending DRAM, and also caching data that is frequently used.
 \end{itemize}
 
-
 \chapter{Writing the Microbenchmarks}
 This chapter will talk about the different approaches to benchmarking latencies and bandwidths of different memory components, and tackling obstacles that would prevent accurate or reliable results.
 
-\section{Timing Techniques}
-Talk about tackling OoO Execution, pro's and con's of different timestamping techniques.
+\section{Measuring Latency}\label{measuring-latency}
+For measuring Latencies, a reliable timing technique must be used that is accurate enough to time fine-grain operations to nanosecond precision. At a high level, the latency measuring technique involves taking a reading of time before and after an instruction(s) of interest, and calculating the difference between said times, minus the overhead of timing.
+
+\subsection{Hardware Support/Tools}
+{
+In order to perform high-precision latency benchmarks, we must have hardware support and tools that allow us to take fine-grain measurements of time, as standard c++ timing libraries cannot provide the precision required to gain any meaningful results.
+
+\subsubsection{Timestamp Counter (TSC)}
+{
+The Timestamp Counter (TSC) is a measuring "device" that allows us to get information on the current cycle-count of the processor. Traditionally, the TSC was a register that existed in each Core. The value in the register would be incremented every cycle, and therefore could be read and the value returned could be used to count the number of cycles elapsed. This was useful for programmers to benchmark how their code would perform in terms of cycles spent, but would not provide a portable solution for measuring wall-time\footnote{Wall-Time: Real world time.} since wall-time is a combination of Cycles spent and Core Frequency. \\
+\\
+Calculating the wall-time using the traditional TSC becomes increasingly difficult when we consider that Intel uses technologies to change Core's frequencies dynamically (for purposes such as power-saving). Since the TSC is also local to each individual Core, it cannot be used to measure code that runs concurrently across multiple cores. Modern Intel CPUs provide access to an "invariant TSC", which increments at set intervals, meaning it can be used for measuring wall-time. Knights Landing does have an invariant TSC, and as such can be used in our microbenchmarks. \\
+\\
+Refer to Appendix A.1 for information on what your Processor's TSC support is.
+}
+
+\subsubsection{Assembly Instructions/Flags}
+{
+In order to make use of our hardware tools, we must have appropriate Assembly Instructions. The three Instructions of interest to this project are:
+\begin{itemize}
+    \item{
+        {\bf \texttt{CPUID}\cite{cpuid_spec}} \\
+        This Instruction is a serialising instruction, which guarantees: \\
+        "any modifications to flags, registers, and memory for previous instructions are completed before the next instruction is fetched and executed."
+    }
+    \item{
+        {\bf \texttt{MFENCE}\cite{mfence_spec}} \\
+        Assembly Instruction/Flag which guarantees that all loads/stores prior to it have been globally retired. Meaning that the resulting memory operation is visible globally.
+    }
+    \item{{\bf \texttt{RDTSCP}\cite{rdtscp_spec}} \\
+    Hardware supports a call to reading the TSC that waits until all previous instructions have finished executing and are globally retired via the \texttt{RDTSCP} Instruction. But is NOT a serialising Instruction.}
+\end{itemize}
+As the techniques for timing are explored we will see the relevance of all the above Assembly Instructions.
+}
+
+}
+
+\subsection{Important Considerations}
+{
+Despite having good hardware tools, there are still some issues that must be considered and tackled in order for our chosen timing technique to be valid. \\
+\\
+The three core considerations are:
+\begin{enumerate}
+    \item Core Affinity: Process/Thread Placement
+    \item Compiler Optimisations
+    \item Out-of-Order Execution
+\end{enumerate}
+
+\subsubsection{Core Affinity}
+{
+Core affinity is the notion of binding a Process or Thread to a Core or range of Cores on a system. This is an important consideration as the TSC is Core Specific. Therefore we want to make sure that we pin our threads to a single core, to ensure that our TSC reads are reading the same register, as there is no guarantee that all TSC Registers across cores will have the same value. \\
+\\
+The Linux c++ library \texttt{sched.h} provides an library for scheduling, and StackOverflow user Ankur Chauhan provided a clean implementation\cite{corepin_src} for pinning the current thread to a specific Core using \texttt{sched.h}. The implementation was tested to ensure it works appropriately and used it within the microbenchmarks.
+}
+
+\subsubsection{Compiler Optimizations}
+{
+All compilation is done using the following command to ensure that the features of c++ we require are available:
+\begin{center}
+    \texttt{prog.cpp \-std=c++0x [\-pthread] -o coherence\_latencies.o}
+\end{center}
+It is important to consider optimisations that the Compiler may use when generating the executable. To ensure that critical sections of the microbenchmarks are not optimised out, we wrap our inline assembly with the volatile keyword. For example we use the following code snippet to generate a load instruction:
+\begin{minted}{cpp}
+asm volatile (
+    "\n\tmov %1, %0"
+    "\n\tMFENCE"
+    :
+    "=r"(data[index])
+    :
+    "r"(data[index])
+    :
+);
+\end{minted}
+The code snippet above is marked as volatile to ensure it is not removed, and generates assembly that would generate a simple \texttt{MOV} instruction that would load the value of \texttt{data[index]} into a register. An example tutorial detailing the specifics of how this works can be found on www.codeproject.com\cite{inline_asm_tut}.
+}
+
+\subsubsection{Out-of-Order Execution}
+{
+Out-of-Order Execution (OoOE) was introduced in Section 2.1.2, and is a major obstacle in writing correct microbenchmarks. If the microbenchmark code is not crafted carefully, it will be shuffled around by the processor to allow the code to stream through the pipeline quicker, and the instructions that the microbenchmark intends to time, may not be the timed instructions. We will see in Section 4.1.3 how the development of the timing component of our microbenchmarks takes OoOE into account.
+}
+
+As I discuss the methodology for arriving at the chosen timing technique, I will refer to these considerations and how they affected the chosen technique.
+
+}
+
+
+\subsection{Timing Technique}
+This section will progressively describe the chosen timing technique with reference to the considerations in Section 4.1.2, and how the timing technique was verified.
+
+\subsubsection{Timing Verification}
+In order to have a timing mechanism that could be reliably used in a microbenchmark, it was important not just to experiment with different timing techniques, but to be able to verify our experiments using known values. \\
+\\
+Using Agner Fog's "Instruction Tables"\cite{inst_tables}, which details cycle latency for standard x86 Instructions on different CPU Architectures, a test suite coined the "Sanity Tests" was crafted to ensure that when using a given timing mechanism, it would return valid latencies. These Sanity Tests would also perform "overhead" tests to ensure that the overhead of the timing mechanism was consistent and reliable, otherwise it would not be possible to subtract the overhead from our measured latency. \\
+\\
+The Sanity Tests timed 1000 runs of the following instructions, and the returned latencies so they could be compared to Fog's table entry for the Knights Landing processor:
+\begin{itemize}
+    \item{{\bf \texttt{DIV}} \\
+        The Division Instruction was expected to have a latency of \textbf{29-42 Cycles}.
+    }
+    \item{{\bf \texttt{PAUSE}} \\
+        The PAUSE Instruction was expected to have a latency of \textbf{25 Cycles}
+    }
+    \item{{\bf \texttt{F2XM1}} \\
+        The F2XM1 Instruction was expected to have a latency of \textbf{100-400 Cycles}.
+    }
+\end{itemize}
+
+\underline{\textbf{Sanity Test Algorithm:}} \\
+\begin{minted}{py}
+latencies = [0] * 500
+for i in range(0,1000):
+    start = start_timestamp()
+    # Timed Instruction, empty if timing Overhead.
+    end   = end_timestamp()
+    latencies[(end - start)]++
+
+for idx, latency in enumerate(latencies):
+    print str(idx) + " Cycles Occured " + str(latency) + " Times"
+
+\end{minted}
+
+
+\subsubsection{BenchIT Solution\cite{benchit_src}}\label{benchit-disc}
+The initial timing mechanism tested was based on the source code of the BenchIT microbenchmark suite:
+\begin{minted}{cpp}
+unsigned long long timestamp()
+{
+  if (!has_rdtsc()) return 0;
+  __asm__ __volatile__("rdtsc;": "=a" (reg_a), "=d" (reg_d));
+  return (reg_d<<32)|(reg_a&0xffffffffULL);
+}
+\end{minted}
+This code produces a simple piece of assembly that reads from the TSC and stores the upper 32-bits into one register, and the lower 32-bits into another register, then returns a 64bit integer result. The BenchIT solution also includes a code snippet which essentially "warms-up" the \texttt{RDTSC} instruction, which when included in the microbenchmarks, improved consistency of the results across runs.\\
+\\
+This is a good foundation on which to build a timing mechanism but it does not inherintly tackle the issue of \texttt{OoOE}, so it must be modified to include some serialising instruction(s).
+
+\subsubsection{Serialising via \texttt{CPUID}}
+Building upon the solution provided by BenchIT, experiments with placing \texttt{CPUID} Instructions around the \texttt{RDTSC} call were experimented with (including solutions provided in an Intel HPC Guide\cite{intel_hpc_guide}) and run through the Sanity Tests, however none of the experiments produced reliable, consistent or correct results.
+
+\subsubsection{Intel's Benchmark Code Execution Time\cite{code_exec_times}}
+In further research, a paper\cite{code_exec_times} by Gabriele Paoloni deep dives an approach to benchmarking code execution time. The proposed timing technique for systems that support the \texttt{RDTSCP} instructions is as follows:
+\begin{minted}[linenos]{cpp}
+asm volatile (
+    "CPUID\n\t"
+    "RDTSC\n\t"
+    "mov %%edx, %0\n\t"
+    "mov %%eax, %1\n\t"
+    :"=r" (cycles_high), "=r" (cycles_low)
+    ::"%rax", "%rbx", "%rcx", "%rdx"
+);
+/* Code to time here - Critical Section */
+asm volatile(
+    "RDTSCP\n\t"
+    "mov %%edx, %0\n\t"
+    "mov %%eax, %1\n\t"
+    "CPUID\n\t"
+    :"=r" (cycles_high1),"=r" (cycles_low1)
+    ::"%rax", "%rbx", "%rcx", "%rdx"
+);
+\end{minted}
+An explanation of the code is as follows (also available on Pages 16-17 of \cite{code_exec_times}):
+\begin{enumerate}
+    \item \textit{Line 2} calls \texttt{CPUID} which ensures that any code prior to our Critical Section finishes execution, and cannot be executed within our Critical Section or Timing Mechanism.
+    \item \textit{Line 3} calls \texttt{RDTSC}, which reads the TSC into the \textbf{eax} and \textbf{edx} registers.
+    \item \textit{Line 4}, \textit{Line 5}, and \textit{Line 6} then store the \textbf{eax} and \textbf{edx} values to memory.
+    \item \textit{Line 7} Informs the Compiler which registers are in use (clobbered) for its own internal knowledge.
+    \item \textit{Line 9} will then contain the Critical Section of code which is to be benchmarked. It is advisable to have the code inlined here in order to ensure that the overhead of a function call is not measured.
+    \item \textit{Line 11} calls \texttt{RDTSCP} which ensures that all the previous instructions have finished executing, and then reads the TSC into the \textbf{eax} and \textbf{edx} registers.
+    \item \textit{Line 12}, \textit{Line 13}, and \textit{Line 15} then store the \textbf{eax} and \textbf{edx} values to memory.
+    \item \textit{Line 14} calls \texttt{CPUID} which ensures that any code prior has finished executing, and that no proceeding code will be executed prior to \textit{Line 14} which would poison our timing mechanism.
+    \item \textit{Line 16} Informs the Compiler which registers are in use (clobbered) for its own internal knowledge.
+\end{enumerate}
+This technique was run against the \textit{Sanity Check}, and produced the most consistent results of all techniques. And the measured latencies aligned with ballpark figures.\\
+\\
+Table \ref{fig:sanity-results} shows the results of timing each of the following instructions: \{\texttt{DIV, PAUSE, F2XM1}\} 1,000 times, and counting the observed latencies in each run:
+\begin{table}[!h]
+\begin{center}
+\caption{\textit{Sanity Check} Results - 1,000 Runs Per Instruction}
+\label{fig:sanity-results}
+\begin{tabular}{ |c||c|c|c|c| } 
+    \hline
+    Latency Observed & Overhead & DIV(29-95) & PAUSE(25) & F2XM1(100-400) \\
+    \hline
+    39 Cycles  & 822 & 0   & 0   & 0   \\
+    52 Cycles  & 178 & 0   & 0   & 0   \\
+    65 Cycles  & 0   & 0   & 847 & 0   \\
+    78 Cycles  & 0   & 691 & 153 & 0   \\
+    91 Cycles  & 0   & 309 & 0   & 0   \\
+    377 Cycles & 0   & 0   & 0   & 537 \\
+    390 Cycles & 0   & 0   & 0   & 462 \\
+    \hline
+\end{tabular}
+\end{center}
+\end{table}
+
 \newpage
 
+As mentioned, Table \ref{fig:sanity-results} shows that we are getting consistent ballpark figures for our latency measurements, but not precise values. If we look purely at the set of Latencies observed, we can see that the latencies we observe are all multiples of 13. This indicates that our timing technique can only take a measurement every 13 Cycles. It can also be observed that there is always a portion of our observations (let us call it an anomaly) that is off by 1 measurement unit (13 Cycles being our "measurement unit"). Regardless of how many trials we run for each instruction, be it 1,000,000 or 50; this anomaly always exists.
+
+
+\subsubsection{Further Analysis of Intel's Solution}
+
+With a benchmarking technique that provides consistent figures, further analysis had to be done to understand how we could improve the accuracy of the results. \\
+\\
+As observed, the results were consistent, but inaccurate. This is due to all observed Latencies being multiples of 13 Cycles. It was hypothesized that this issue exists as a result of an alignment issue with our timing technique and the instruction being timed, and experiments were conducted with timing different numbers of the same Instruction consecutively. For example instead of timing one single \texttt{PAUSE} Instruction, we could instead time \texttt{N} consecutive \texttt{PAUSE} Instructions, and divide our latency (without the overhead) by \texttt{N}. \\
+\\
+After trialing various values for the number of consecutive Instructions, it was found that 13 Instructions yielded results where the observed Latency was most similar to the actual Latency. Figure \ref{fig:measure-alignment} shows a rough pictorial representation of the hypothesis/observation in action, where green blocks represent a 13 Cycle interval, and the blue blocks represent a 25 Cycle \texttt{PAUSE} instruction:
+\\
+\begin{figure}[h]
+    \includegraphics[width=12cm]{MeasureAlignment.png}
+    \centering
+    \caption{\texttt{PAUSE} Measuring Alignment}
+    \label{fig:measure-alignment}
+\end{figure}
+\\
+Although Figure \ref{fig:measure-alignment} does not perfectly ratio the size of our 13 Cycle blocks to our 25 Cycle PAUSE Instructions, thinking about the concept shows that at time \texttt{T1}, our \texttt{PAUSE} Instruction that we are measuring has completed, but due to the accuracy of our timing mechanism, we mark the end of its completion as 26 Cycles (after the second 13 Cycle block). However we see that after so many Instructions, that at time T2, the end of a 13 Cycle block aligns with the end of a \texttt{PAUSE} Instruction. It makes sense that after performing 13 consecutive \texttt{PAUSE} Instructions, that the end of the final \texttt{PAUSE} would align with the of a 13 Cycle block. And that in general, for an Instruction \texttt{X} with a consistent Latency of \texttt{Y} Cycles, queuing 13 of \texttt{X} consecutively will result in \texttt{Y} 13 Cycle blocks aligning with the final \texttt{X} Instruction.  \\
+\\
+We can use this fact to take measurements to an accuracy of 1 Cycle, simply by chaining multiple of the measured Instructions together in multiples of 13 within the timing measurements. Our revised \textit{Sanity Test} now uses Instructions with a lower expected latency, and the results are as follows, with the overhead remaining the same at 39 Cycles:
+
+\begin{table}[!h]
+\begin{center}
+\caption{\textit{Sanity Check} Revised Results - 1,000 Runs Per Instruction}
+\label{fig:sanity-results-2}
+\begin{tabular}{ |c||c|c|c| } 
+    \hline
+    Latency Observed & CWDE(1) & PAUSE(25) & CWD(7) \\
+    \hline
+    1 Cycles   & 1000 & 0   & 0   \\
+    6 Cycles   & 0    & 0   & 312 \\
+    7 Cycles   & 0    & 0   & 685 \\
+    25 Cycles  & 0    & 813 & 0 \\
+    26 Cycles  & 0    & 185 & 0   \\
+    \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+Table \ref{fig:sanity-results-2} shows that we get much more accurate results for each Instruction, however in some Instruction's cases, we still have this anomaly that exists. This could be due to various reasons, each of which are difficult to verify. Some examples of reasons that were considered but not investigated are:
+
+\begin{enumerate}
+    \item{{\bf Assembly to Micro-Op Translation} \\
+        Despite writing Assembly Instructions, x86 Instructions are in fact broken down further into Micro-Operations, this is advantageous to the processor as it allows the CPU to re-order sections of an Instruction. This is difficult to investigate as it is Instruction specific, and for the scope of this project, we are interested mostly in Load Instructions, which there is not much Documentation for.
+    }
+    \item{{\bf Pipeline Optimisations/Considerations} \\
+        What Intel's processors do internally is proprietary information, and it is not possible to know exactly what is going on inside the Processor or pipeline, it may be that for some Instructions (for example \texttt{CWDE}) in Table \ref{fig:sanity-results-2}) that the Processor is able to perform an optimisation that can cut the Cycle time for multiple or consecutive identical Instructions.
+    }
+\end{enumerate}
+
+\subsection{Conclusion}
+From the observations made, it seems fair to hypothesize that there is an uncontrollable margin for error that exists when conducting repeated experiments using Gabriele Paoloni's suggested technique\cite{code_exec_times}. His suggested solution definitely tackles the three most important considerations that were outlined in Section 4.1.2, and further analysis discovered further considerations with respect to the accuracy of the mechanism must be made when using the technique. \\
+\\
+Therefore the implementation of the start and stop timing mechanisms are shown in Figure \ref{fig:starttimestamp-code} and Figure \ref{fig:endtimestamp-code} respectively. It is important to note that the functions take in a reference to a 32-bit integer, and store the upper and lower 32-bits of the TSC in the referenced variables, but do not convert the two variables to a 64-bit value here, as that would incur an overhead that would pollute the measurement, this will become more evident in \hyperref[sec:l1-lat-key-comp]{Section \ref{sec:l1-lat-key-comp}} when discussing the usage of the timing functions. Both functions have the attributes:
+    
+    \begin{center}
+        \texttt{inline \_\_attribute\_\_((always\_inline)) volatile}
+    \end{center}
+Which ensure that where ever the function is called, the function is in-lined to that location in the source. This is \emph{extremely} important as it prevents a new stack-frame being created for the function call, and in turn, avoids the overhead of the appropriate stack operations, and the overhead of calling the function.
+
+\begin{figure}[h!]
+    \centering
+    \begin{minted}[linenos]{cpp}
+inline __attribute__((always_inline)) volatile void start_timestamp(
+    uint32_t *time_hi,
+    uint32_t *time_lo)
+{
+    asm volatile (
+        "CPUID\n\t"
+        "RDTSC\n\t"
+        "mov %%edx, %0\n\t"
+        "mov %%eax, %1\n\t": "=r" (*time_hi), "=r" (*time_lo)::
+        "%rax", "%rbx", "%rcx", "%rdx"
+    );
+}
+    \end{minted}
+    \caption{start\_timestamp function}
+    \label{fig:starttimestamp-code}
+\end{figure}
+
+\begin{figure}[h!]
+    \centering
+    \begin{minted}[linenos]{cpp}
+inline __attribute__((always_inline)) volatile void end_timestamp(
+    uint32_t *time_hi,
+    uint32_t *time_lo)
+{
+    asm volatile(
+        "RDTSCP\n\t"
+        "mov %%edx, %0\n\t"
+        "mov %%eax, %1\n\t"
+        "CPUID\n\t": "=r" (*time_hi), "=r" (*time_lo)::
+        "%rax", "%rbx", "%rcx", "%rdx"
+    );
+}
+    \end{minted}
+    \caption{end\_timestamp function}
+    \label{fig:endtimestamp-code}
+\end{figure}
+
+\newpage
 \section{Measuring Bandwidth}
-Talk about approaches considered and taken for measuring memory bandwidth
-\newpage
+The scope of the project includes measuring the bandwidth between the aforementioned \texttt{MCDRAM} memory, but also the standard \texttt{DRAM} memory.
 
-\section{L1 Cache}
-Talk about the benchmark program for measuring L1 Cache latencies.
+\subsection{Important Considerations}\label{bandwidth_considerations}
+In its purest form, bandwidth is the volume of data that can be transferred concurrently between two points. However in light of the goals of this project, we want to measure the bandwidth of the \texttt{MCDRAM} and \texttt{DRAM} under many different circumstances. This is important to consider and acknowledge because the bandwidth will be different under different circumstances, and when measuring between one or multiple cores, under a varying number of threads.
+
+\subsection{STREAM\cite{STREAM}}
+STREAM is a memory bandwidth benchmark developed by John D. McCalpin, Ph.D. that \say{measures sustainable memory bandwidth (in MB/s) and the corresponding computation rate for simple vector kernels.}\cite{STREAM_FAQ} It is an industry standard for measuring \textit{DRAM} memory, and using \texttt{numactl}\cite{numactl_repo}\cite{numactl_man} can be run using multiple threads on either the \texttt{MCDRAM} or \texttt{DRAM}. Section \ref{mcdram-dram-benchmarks-bw} will cover how the STREAM benchmark is used to measure the \texttt{MCDRAM} and \texttt{DRAM} bandwidth.
+
 \newpage
-\section{L2 Cache}
-Talk about the benchmark program for measuring L2 Cache latencies.
+\section{L1 Cache Latency}
+Building upon the conclusion of Section \ref{measuring-latency}, this section will discuss in detail how measuring the latency of a Load to a Local L1 Cache is benchmarked, including noteworthy design choices that were made to ensure that desired functionality was achieved.
+
+
+\subsection{Algorithm}\label{sec:l1-lat-algo}
+\subsubsection{Algorithm Pseudocode}
+\begin{figure}[h!]
+    \begin{minted}[linenos]{python}
+# Returns the Latency of a single L1 Load
+def getL1Latency(overhead):
+    CorePin(0)                   # Pin Thread to Core 0
+    data[L1_SIZE]                # Array that will fill L1 Cache
+    latencies[500] = {0,0,...,0} # Init array of size 500 to all 0's
+    for i in range(0,1000):
+        for j in range(0, L1_SIZE):
+            data[j] = j          # Write to data to get it in L1.
+            
+        start = start_timestamp()
+        # Start Critical Section
+        # Perform 26 Loads to data.
+        load(data[0])
+        asm("MFENCE")
+        load(data[1])
+        asm("MFENCE")
+        ...
+        load(data[25])
+        asm("MFENCE")
+        # End Critical Section
+        end   = end_timestamp()
+        
+        latency = (end - start - overhead) / 26
+        latencies[latency]++      # Increment count of this latency seen
+        
+    printLatencies(latencies)     # Prints results
+    \end{minted}
+    \caption{L1 Latency Algorithm}
+    \label{fig:l1-lat-algo}
+\end{figure}
+\subsubsection{Algorithm Walkthrough}
+\begin{enumerate}
+    \item Pins the Process/Thread to a single Core
+    \item Declares a data array that will be large enough to fill the L1 Cache.
+    \item Declares an array of size 500 (say latencies), where latencies[i] is the number of times a Load was measured to have taken i Cycles.
+    \item Loops for 1000 times, to perform repeated trials.
+    \item Loop through the L1 Data array, writing to its indices such that the array exists entirely in the L1 Cache.
+    \item Read the TSC Register and store its value.
+    \item Perform 26 Loads to data in the L1 Cache, with each Load followed by an MFENCE\cite{mfence_spec}, ensuring the load completes before the next starts.
+    \item Read the TSC Register and store its value.
+    \item Calculate the latency of this load by getting the difference in the TSC reads, and subtracting the overhead of reading the timestamps to get the time for 26 Loads. Divide this value by 26 to get the Latency for a single Load.
+    \item In the latencies array, increment the appropriate index to indicate we have seen another L1 Load take the index's number of Cycles.
+\end{enumerate}
+
+\subsection{Key Features/Integral Components}\label{sec:l1-lat-key-comp}
+Figure \ref{fig:l1-lat-algo} shows a high level overview of the algorithm, however there are many subtleties that are important to note that cannot be seen from such a high level.
+\begin{enumerate}
+    \item{{\bf Timing Overhead} \\
+    The overhead argument in \texttt{Line2} was calculated taking into account that there will be 26 \texttt{MFENCE} Flags/Intructions in the Critical Section, to ensure that the measured Latency doesn't account for the time the Pipeline may have been stalled waiting for Loads to become globally visible. This means that the overhead is calculated using the exact same algorithm as Figure \ref{fig:l1-lat-algo} except the Critical Section contains only 26 \texttt{MFENCE} Flags/Instructions.}\label{timing-overhead-consideration-L1}
+    
+    \item{{\bf Warm-Up Procedure} \\
+    At the start of every iteration (i.e. \texttt{Line 7}) an omitted warmup() procedure is called. This refers to the discovery made in Section \ref{benchit-disc}, that calling \texttt{CPUID}, \texttt{RDTSC}, and \texttt{RDTSCP} numerous times to obtain more repeatable results. }
+    
+    \item{{\bf Load Addresses} \\
+    Between \texttt{Line 12} and \texttt{line 18} the algorithm states that 26 loads are made to consecutive indices of the L1 Data. However in the implementation, it is not consecutive indices, but the actual index is \texttt{N * STRIDE} where \texttt{STRIDE} is the number of 32-bit integers that would fit into a single line in the Cache. This is \emph{extremely} important as it means that all loads hit different Cache Lines, which means that each load will definitely happen independently with the inclusion of the \texttt{MFENCE} Flags/Instructions.}
+    
+    \item{{\bf Timestamp Usage} \\
+    Both \hyperref[fig:starttimestamp-code]{\texttt{start\_timestamp}} and \hyperref[fig:endtimestamp-code]{\texttt{end\_timestamp}} are used in Figure \ref{fig:timestamp_usage_l1}. This snippet shows that although the TSC is read, the two resultant 32-bit integers (for the upper and lower 32-bits of the 64-bit TSC value) are not converted to a 64-bit value. This is important because had the conversion been conducted within the Critical Section, it would have polluted the measured Latencies and hence the result.
+    \begin{figure}[h!]
+        \centering
+        \begin{minted}[linenos]{cpp}
+    uint32_t start_hi, start_lo, end_hi, end_lo;
+    uint64_t start, end, latency;
+    
+    start_timestamp(&start_hi, &start_lo);
+    /* Critical Section */
+    end_timestamp(&end_hi, &end_lo);  
+    
+    start   = ( ((uint64_t)start_hi << 32) | start_lo );
+    end     = ( ((uint64_t)end_hi   << 32) | end_lo   );
+    latency = (end - start);
+        \end{minted}
+        \caption{Timestamp Functions Usage}
+        \label{fig:timestamp_usage_l1}
+    \end{figure}
+    
+    }
+    \item{{\bf Boundary Checks} \\
+    As the implementation is actually in c++, appropriate care was taken when performing tasks such as array indexing to ensure that abnormal latencies (that would result as a bi-product of OS scheduling) do not cause segmentation faults, or program crashes. }
+\end{enumerate}
+
+
+
 \newpage
-\section{MCDRAM}
+\section{L2 Cache Latency}
+Building upon the conclusion of \hyperref[measuring-latency]{Section \ref{measuring-latency}} and the Algorithm used in \hyperref[measuring-latency]{Section \ref{sec:l1-lat-algo}}, this section will discuss in detail how measuring the latency of a Load to a Local L2 Cache is benchmarked. The same \hyperref[sec:l1-lat-key-comp]{\emph{Key Features/Components}} mentioned in \hyperref[measuring-latency]{Section \ref{sec:l1-lat-key-comp}} still apply, and further important design decisions will be described.
+
+\subsection{Algorithm}\label{sec:l2-lat-algo}
+\subsubsection{Algorithm Pseudocode}
+\begin{figure}[h!]
+    \begin{minted}[linenos]{python}
+# Returns the Latency of a single L2 Load
+def getL1Latency(overhead):
+    CorePin(0)                   # Pin Thread to Core 0
+    latencies[500] = {0,0,...,0} # Init array of size 500 to all 0's
+    for i in range(0,1000):
+        data[L2_SIZE]            # Array that will fill L2 Cache
+        
+        # Fill the L1 & L2 Cache with target data.
+        for x in range(0, L2_SIZE):
+            data[x] = x
+        
+        # Fill the L1 Cache with subset of target data.
+        for y in range(0, L1_SIZE):
+            data[y] = y + 1
+            
+        start = start_timestamp()
+        # Start Critical Section
+        # Perform 26 Loads to data.
+        load(data[L1_SIZE + 0])
+        asm("MFENCE")
+        load(data[L1_SIZE + 1])
+        asm("MFENCE")
+        ...
+        load(data[L1_SIZE + 25])
+        asm("MFENCE")
+        # End Critical Section
+        end   = end_timestamp()
+        
+        latency = (end - start - overhead) / 26
+        latencies[latency]++      # Increment count of this latency seen
+        
+    printLatencies(latencies)     # Prints results
+    \end{minted}
+    \caption{L2 Latency Algorithm}
+    \label{fig:l2-lat-algo}
+\end{figure}
+\subsubsection{Algorithm Walkthrough}
+\begin{enumerate}
+    \item Pins the Process/Thread to a single Core
+    \item Declares an array of size 500 (say latencies), where latencies[i] is the number of times a Load was measured to have taken i Cycles.
+    \item Loops for 1000 times, to perform repeated trials.
+    \item Declare a data array that will be large enough to fill the L2 Cache.
+    \item Loop through the L2 Data array, writing to its indices such that the array exists entirely in the L1 and L2 Cache.
+    \item Loop through the first \texttt{N} indices of the L2 Data array, writing new values to those indices such that the first \texttt{N} elements exist in the L1 Cache, and the remaining \texttt{(L2\_SIZE - N)} elements exist in the L2 Cache.
+    \item Read the TSC Register and store its value.
+    \item Perform 26 Loads to data in the L2 Cache, with each Load followed by an MFENCE\cite{mfence_spec}, ensuring the load completes before the next starts.
+    \item Read the TSC Register and store its value.
+    \item Calculate the latency of this load by getting the difference in the TSC reads, and subtracting the overhead of reading the timestamps. Divide this value by 26 to get the Latency for a single Load.
+    \item In the latencies array, increment the appropriate index to indicate we have seen another L2 Load take the index's number of Cycles.
+\end{enumerate}
+\subsection{Key Features/Integral Components}\label{sec:l2_lat_key_comp}
+Figure \ref{fig:l2-lat-algo} shows a high level overview of the algorithm, .
+\begin{enumerate}
+    \item{{\bf TITLE} \\
+    BODY}
+\end{enumerate}
+
+
+\newpage
+\section{MCDRAM/DRAM Latency}\label{mcdram-dram-benchmarks-lat}
 Talk about the benchmark program for measuring MCDRAM latencies and Bandwidth.
+\subsection{Algorithm}
+\subsubsection{Pseudocode}
+\subsubsection{Explanation}
+\subsection{Key Features/Integral Components}
+
 \newpage
-\section{DRAM}
-Talk about the benchmark program for measuring DRAM latencies and Bandwidth.
+\section{Remote Cache Latency}\label{mcdram-dram-benchmarks}
+Talk about the benchmark program for measuring MCDRAM latencies and Bandwidth.
+\subsection{Algorithm}
+\subsubsection{Pseudocode}
+\subsubsection{Explanation}
+\subsection{Key Features/Integral Components}
+
+\newpage
+\section{MCDRAM/DRAM Bandwidth}\label{mcdram-dram-benchmarks-bw}
+Talk about the benchmark program for measuring MCDRAM latencies and Bandwidth.
+\subsection{STREAM Algorithm}
+\subsubsection{Pseudocode}
+\subsubsection{Explanation}
+\subsection{STREAM Usage}
+
 \newpage
 
 \chapter{Results}
@@ -209,7 +685,23 @@ Talk about the benchmark program for measuring DRAM latencies and Bandwidth.
 \newpage
 
 \chapter{Discussion}
-
+\section{Latency Conclusions}
+\subsection{L1 Latencies Results}
+\subsubsection{Observations}
+\subsubsection{Potential Errors/Improvements}
+\subsubsection{Evaluation}
+\subsection{L2 Latencies Results}
+\subsubsection{Observations}
+\subsubsection{Potential Errors/Improvements}
+\subsubsection{Evaluation}
+\subsection{MCDRAM/DRAM Latencies Results}
+\subsubsection{Observations}
+\subsubsection{Potential Errors/Improvements}
+\subsubsection{Evaluation}
+\section{Bandwidth Conclusions}
+\subsubsection{Observations}
+\subsubsection{Evaluation of STREAM}
+\section{Closing Thoughts}
 % \chapter{TEMP - Citations}
 
 % Note that citations 
@@ -223,5 +715,27 @@ Talk about the benchmark program for measuring DRAM latencies and Bandwidth.
 % otherwise generate bibtem entries
 \bibliographystyle{plain}
 \bibliography{mybibfile}
+
+
+\appendix
+
+\chapter{Appendices}
+\section{Timestamp Counter Support}
+On Linux, you can find out if your CPU supports invariant-tsc by running the following command on the command line:
+\begin{center}
+\verb
+cat /proc/cpuinfo
+\\
+\end{center}
+This will list information about the Processors that the OS is aware of, and for each visible Processor, will include a list of "flags" that the Processor supports. \\
+\\
+The flags\cite{cpuinfo_flags} of interest for Intel systems under this project are:
+\begin{itemize}
+    \item{{\bf \texttt{tsc}} \\
+    Core(s) Supports a Time-Stamp-Counter mechanism that can be read using the \texttt{RDTSC} Assembly Instruction.}
+    \item{{\bf \texttt{constant\_tsc}} \\
+    The TSC ticks at a constant rate.}
+\end{itemize}
+
 
 \end{document}
