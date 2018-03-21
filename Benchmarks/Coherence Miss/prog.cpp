@@ -218,16 +218,7 @@ void writeData(int coreNum, int runState) {
             /* Payload */
                 // Write data so it exists in Modified State.
                 for (int i=0; i < (300 * STRIDE); i++) {
-                    asm volatile (
-                        "\n\t#1 L1 Load Inst"
-                        "\n\tmov %0, %1"
-                        "\n\tMFENCE"
-                        :
-                        "=r"(shared_data[i])
-                        :
-                        "r"(i):
-                    );
-                    // shared_data[i] = i + 1;
+                    shared_data[i] = i;
                 }
             /***********/
 
