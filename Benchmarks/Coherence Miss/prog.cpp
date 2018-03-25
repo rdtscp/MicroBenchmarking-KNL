@@ -267,6 +267,50 @@ void readData(int coreNum, int runState) {
 
 }
 
+void readData2(int coreNum, int runState) {
+    if (CorePin(coreNum) != 1) printf("\nERROR PINNING CORE");
+    int chip = -1;
+    int core = -1;
+    tacc_rdtscp(&chip, &core);
+    printf("\n\t => readData2 pinned to\t\t\tChip%d.Core%d", chip, core);
+    tasks_setup++;
+    warmup();
+    // While we are on a valid task, continue running.
+    while (currTask != -1) {
+        // If its this Task's turn.
+        if (currTask == runState) {
+            // printf("\n%d Reading Data", coreNum);
+            /* Payload */
+                volatile int temp = 0;
+                for (int i=0; i < (300 * STRIDE); i++) {             // Access required data beforehand, so that it is in L1 Cache.
+                    // Move data.
+                    asm volatile (
+                        "\n\t#1 L2 Load Inst"
+                        "\n\tmov %1, %0"
+                        "\n\tMFENCE"
+                        :
+                        "=r"(shared_data[i])
+                        :
+                        "r"(shared_data[i])
+                        :
+                    );
+                }
+
+                for (int i=0; i < (300 * STRIDE); i++) {
+                    asm volatile(
+                        "CLFLUSH (%0)"::
+                        "r"(&shared_data[i]):
+                    );
+                }
+            /***********/
+
+            asm volatile("MFENCE");
+            currTask++;
+        }
+    }
+
+}
+
 void timeAccess(int coreNum, int runState) {
     if (CorePin(coreNum) != 1) printf("\nERROR PINNING CORE");
     int chip = -1;
@@ -687,14 +731,14 @@ void remoteShared() {
     std::vector<std::thread> tasks;
     for (int i = 0; i < NUM_CORES; i++) {
         bool set = false;
-        if (i == ALT_CORE && !set) {
+        if (i == BASE_CORE && !set) {
             printf("\n\t => Pinning readData as Task 1 to\tCore %d", i);
             tasks.push_back(std::thread(readData, i, 1));
             set = true;
         }
-        if (i == BASE_CORE && !set) {
-            printf("\n\t => Pinning readData as Task 2 to\tCore %d", i);
-            tasks.push_back(std::thread(readData, i, 2));
+        if (i == ALT_CORE && !set) {
+            printf("\n\t => Pinning readData2 as Task 2 to\tCore %d", i);
+            tasks.push_back(std::thread(readData2, i, 2));
             set = true;
         }
         if (i == TARGET_CORE && !set) {
