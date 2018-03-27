@@ -1,4 +1,4 @@
-let freq = 1300000000;
+let freq = 1.3 * 100000000;
 
 let arg3 = process.argv[2];
 
