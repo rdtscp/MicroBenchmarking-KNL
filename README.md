@@ -7,14 +7,15 @@ The project involves evaluating the Latencies of core memory components, and the
 ## Repository Structure
 ```
 /
-├── /Benchmarks
-│   ├── /Coherence Miss
-│   ├── /Latencies
-│   └── /Memory Bandwidth
-└── /Docs
-    ├── /Dissertation
-    ├── /References
-    └── /Results
+├── Benchmarks
+│   ├── Coherence Miss
+│   ├── Latencies
+│   ├── Memory Bandwidth
+│   └── Tools
+└── Docs
+    ├── Dissertation
+    ├── References
+    └── Results
 ```
 ## /Benchmarks/
 Contains source-code and associated files for building and executing the different microbenchmarks.
@@ -54,6 +55,8 @@ Contains source-code for STREAM Benchmark purposed for Knights Landing. STREAM C
 ```
 Where $numa_region is the numa-region you wish to run your benchmarks on. In Quadrant/All-to-All and Flat Mode, 0 is DRAM, and 1 MCRAM.
 
+### /Benchmarks/Memory Bandwidth/
+Contains small utility application for converting Cycles to NanoSeconds 
 
 ## /Docs/
 Contains source-control files for the dissertation and results associated with the dissertation.
