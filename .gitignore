@@ -3,3 +3,4 @@
 a.out
 *.o
 SamplePrograms/*
+settings.json
