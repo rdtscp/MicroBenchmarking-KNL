@@ -55,7 +55,7 @@ Contains source-code for STREAM Benchmark purposed for Knights Landing. STREAM C
 ```
 Where $numa_region is the numa-region you wish to run your benchmarks on. In Quadrant/All-to-All and Flat Mode, 0 is DRAM, and 1 MCRAM.
 
-### /Benchmarks/Memory Bandwidth/
+### /Benchmarks/Tools/
 Contains small utility application for converting Cycles to NanoSeconds 
 
 ## /Docs/
