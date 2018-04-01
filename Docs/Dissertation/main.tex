@@ -11,6 +11,8 @@
 \usepackage{minted}
 \usepackage{hyperref}
 
+
+
 \begin{document}
 
 \title{Microbenchmarking Intel Knights Landing}
@@ -24,30 +26,72 @@
 \date{\today} 
 
 \abstract{
-@TODO
+This project investigates how processors with complex memory hierarchies and execution pipelines process instructions and data. This includes evaluating the performance of the memory system of Intel's 2nd Generation Xeon Phi Processor, codenamed Knights Landing. The report covers how instruction latency is measured and how important computer architecture concepts such as pipelining and out-of-order execution are accounted for when conducting measurements. It also covers usage of STREAM, an open-source benchmark for measuring memory bandwidth, on Knights Landing and presents results for latencies and bandwidths of memory components of the Knights Landing Processor. Finally it provides usage instructions for repeating the experiments and running the benchmark suite implemented. \\
+\\
+The Results and accompanying Discussion also verify performance metrics provided by Intel on the MCDRAM and DRAM Bandwidths, that peak bandwidth of MCDRAM is 400+GB/s.
 }
 
 \maketitle
 
-
-
 \section*{Acknowledgements}
-@TODO 
-
+I would like to thank my supervisor \textbf{Vijay Nagarajan} for his help in supervising this project. Not only did he help me throughout the project, but his teaching in the Computer/Parallel Architecture courses helped me understand fundamental concepts in order to work on this project. \\
+\\
+I would also like to thank \textbf{all my family} for their extensive support for my education, giving me the time and space I needed to study, and ultimately supporting me pursuing my interests. \\
+\\
+Finally I would like to thank my best friend \textbf{Eddy} for always being there to listen to me try to explain my work and being supportive.
 \tableofcontents
 
 \pagenumbering{arabic}
 
 \chapter{Introduction}
 \section{Project Motivation}
-With processors becoming increasingly complex, and the need for large data processing, hardware manufacturers like Intel are producing new and different processors to tackle different problems, using new or different architectural designs. It is interesting to investigate the design choices made, and think about the different potential applications of new architectural designs.
+With processors becoming increasingly complex, and the need for large data processing, hardware manufacturers like Intel are producing new and different processors to tackle different problems, using new or different architectural designs. One of the major issues with modern processors, is that the memory system is a huge bottleneck in the processor; for example fetching data from memory takes substantially longer than most arithmetic or logical operations. In order to tackle this issue, complex memory hierarchies of Caches and DRAM are created to try and minimise the latency of a memory access. It is interesting to investigate how processors work, and how these complex memory systems behave, in order to understand how these systems improve program performance.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Project Overview}\label{proj-overview}
+The goal of this project is to evaluate the performance of Intel's 2nd Generation Xeon Phi processor's(code-named Knights Landing, or KNL for short) memory system, in order to verify Intel's performance statistics. The project is also about gaining an understanding of how High Performance Computers differ to desktop processors, and an understanding of how parallel processing is achieved in a practical sense. Knights Landing has a complex and interesting memory system, including new memory modules relative to predecessors. The project scope included measuring the latencies of accessing different regions of memory, namely the L1 Cache, L2 Cache, DRAM, and Intel's new MCDRAM. The project scope also includes investigating how the Cache Coherence system present across the chip behaves, and what the latency of accessing data between Cores is in the different Coherence States. The project scope also includes measuring the bandwidth of the DRAM and MCDRAM, to better understand how data is processed in a High Performance Computing context.
 
-\section{Project Overview}
-The goal of this project is to evaluate the performance of Intel's 2nd Generation Xeon Phi processor's(code-named Knights Landing) memory system. The processor has a complex and interesting memory system, including new memory modules relative to predecessors. The project will include measuring the latencies of accessing the different memory components and bandwidths between them.
+\section{Project Goals Achieved}
+From the goals briefly outlined in the \hyperref[proj-overview]{Project Overview}, concrete results were obtained for the Bandwidth's of the DRAM and MCDRAM. Concrete results for the latencies of the L1 Cache, L2 Cache, DRAM and MCDRAM, however the accuracy and validity of the results will be discussed in the \hyperref[chap:conclusion]{Results Chapter}. Finally, concrete results for the latencies of accessing data in remote Cores was partially obtained for some states, but more work would need to be done to validate the results or obtain other reliable results.
 
-\chapter{Background}
+\section{Report Structure}
+Following the Introduction; \\
+\\
+\textbf{Chapter \ref{chap:bground}}will cover background information on computer architecture that will give a general understanding of how processors execute instructions, and tackle the long latencies of DRAM accesses using Cache's. The Background will also include some rudimentary information on how parallel processors work, and keep their Cache's data coherent across Cores. \\
+\\
+\textbf{Chapter \ref{chap:knl-arch}} will then outline the architecture of the Knights Landing Processor, including the configurable modes for the L2 Cache, and the MCDRAM. The Chapter will also lightly discuss how the KNL Cores handle Threads, which will be relevant when discussing the measured results. \\
+\\
+\textbf{Chapter \ref{chap:writing-benchmarks}} is made up of 7 sections:
+\begin{enumerate}
+    \item Measuring Latency
+    \item Measuring Bandwidth
+    \item L2 Cache Latency
+    \item DRAM/MCDRAM Latency
+    \item Remote Cache Latency(Coherence Miss Latencies)
+    \item DRAM/MCDRAM Bandwidth
+\end{enumerate}
+Section \ref{measuring-latency} discusses the work done in a chronological order, for deciding upon a technique for measuring instruction latency. This section also includes practises used to verify techniques, and the methodology for generating Load instructions. The conclusion of this section is a portable methodology for generating Load instructions, and an approach to measuring instruction execution latency. \\
+\\
+Section \ref{measuring-bandwidth} briefly introduces the Open Source benchmark program that was used for measuring the bandwidth of the DRAM and MCDRAM. \\
+\\
+Section \ref{sec:l1-cache-latency} discusses the algorithm of the benchmark program for measuring the latency of an L1 Cache load, which includes a high level overview of the algorithm, using the conclusions of Section \ref{measuring-latency}(Measuring Latency). \\
+\\
+Section \ref{sec:l2-cache-latency} discusses the algorithm of the benchmark program for measuring the latency of an L2 Cache load, which includes a high level overview of the algorithm, using the conclusions of Section \ref{measuring-latency}(Measuring Latency). This section will build upon Section \ref{sec:l1-cache-latency}, and note important differences. \\
+\\
+Section \ref{mcdram-dram-benchmarks-lat} discusses the algorithm of the benchmark program for measuring the latency of an DRAM/MCDRAM load, again this will build upon the previous two sections, noting important differences. \\
+\\
+Section \ref{coherence-latencies} introduces how I implemented a multi-threaded benchmark application at a high level. It also shows how information highlighted in the Background Chapter (Section \ref{cache-coherence}) is used to place the Processor into a particular state for measuring latencies for accessing data across Cores(into other Caches). \\
+\\
+Finally Section \ref{mcdram-dram-benchmarks-bw} discusses what the Bandwidth microbenchmark does, and why it is relevant. This includes discussion of how it was used to ensure the results obtained are valid. \\
+\\
+\textbf{Chapter \ref{chap:results}} presents the results of running the microbenchmarks from Chapter \ref{chap:writing-benchmarks}. \\
+\\
+\textbf{Chapter \ref{chap:discussion}} discusses the results obtained, and the validity of the results compared to Intel's published results. This Chapter also includes discussion on what could be done to improve the results. \\
+\\
+\textbf{Chapter \ref{chap:conclusion}} concludes the report, highlighting what work was done, including what was learnt throughout the project. This Chapter will finish by concluding the outcome of the project, including deliverables and further work. \\
+\\
+\textbf{Chapter \ref{chap:benchmark-suite}} is separate to the main flow of the report, and discusses the Open Source version of the implemented Benchmark Suite, including instructions for usage.
+
+\chapter{Background}\label{chap:bground}
 \section{Computer Architecture}
 This section will cover design features present in modern processors that are relevant to the scope of this project, specifically in understanding how benchmarks are written.
 
@@ -79,23 +123,23 @@ Where the value of \texttt{y} cannot be calculate until the result of \texttt{x}
 
 \subsection{Caching}
 \subsubsection{Motivation}
-Moore's Law states that the number of transistors that could be fit onto a computer chip would scale up by a factor of five, every five years. To begin with, the extra transistors on the chips were used for created logical units that could compute logical/arithmetic operations quicker, however it was soon realised that despite processors being able to process arithmetic with a latency as low as a single cycle, actually retrieving the data to perform the logical/arithmetic operations on was becoming a huge bottleneck. For example; the \texttt{EXE} stage of the pipeline could process simple addition operations in a single cycle, but retrieving the additions operands could cost a few hundred cycles to retrieve from memory, and so memory latency became a significant bottleneck in the pipeline.
+Moore's Law states that the number of transistors that could be fit onto a computer chip would scale up by a factor of five, every five years. To begin with, the extra transistors on the chips were used for created logical units that could compute logical/arithmetic operations quicker, however it was soon realised that despite processors being able to process arithmetic with a latency as low as a single cycle, actually retrieving the data to perform the logical/arithmetic operations on was becoming a huge bottleneck. For example; the \texttt{EXE} stage of the pipeline could process simple addition operations in a single cycle, but retrieving the additions operands can cost up to a few hundred cycles to retrieve from memory, and so memory latency became a significant bottleneck in the pipeline.
 \subsubsection{Solution}
 The solution to this problem has not just been to throw more hardware at main memory, but to use the new transistors on chips to create a memory hierarchy that caches and pre-fetches data that is likely to be used. Most general purpose CPU's today have a two to three level cache hierarchy, with level one being the smallest and closest to the processor cores, and level 3 being the biggest. When referring to different levels of caches in a processor, \texttt{L1} is used to refer to the level one cache; likewise \texttt{L2} to refer to the level two cache.
 \par
 \subsubsection{Cache Behaviour}
-Each processor line will have its own unique cache architecture. However it is typical for an \texttt{L1} cache to exist spatially close to a single core, and be unique to that core. Some architectures have \texttt{L2} caches unique to a core, however it is more common that the \texttt{L2} cache is shared among cores. There are two ways that caches are designed to be indexed; Direct-Mapping and Set-Associative.
+Each processor model will have its own unique cache architecture. However it is typical for an \texttt{L1} cache to exist spatially close to a single core, and be unique to that core. Some architectures have \texttt{L2} caches unique to a core, however it is more common that the \texttt{L2} cache is shared among cores. There are two ways that caches are designed to be indexed; Direct-Mapping and Set-Associative.
 \begin{itemize}
     \item{
         {\bf Direct Mapping} \\
         Each line in memory is mapped to a specific line in the cache. If memory has \texttt{M} lines, and our cache has \texttt{C} lines, where \texttt{C < M}, memory line \texttt{m} is located in the cache at line \texttt{m modulo C}\\
-        This has the advantage of being quick to access, as you simply lookup the line in cache where the address you wish to read/write to would exist, and if the tag of the cache-line and your address match, you have found your data quickly. \\
-        This method can incur cache thrashing, which is when useful data is evicted from the cache, for example say you have two variables in memory, and they both map to the same cache line, the cache could be evicting and replacing this line potentially many times depending on the nature of the program and its use of the variables. \\
+        This has the advantage of being quick to access, as you simply look up the line in cache where the address you wish to read/write to would exist, and if the tag of the cache-line and your address match, you have found your data quickly. \\
+        This method can incur cache thrashing, which is when useful data is evicted from the cache, for example say you have two variables in memory, and they both map to the same cache line, the cache could be evicting and replacing this line potentially many times depending on the nature of the program and its use of program variables/memory. \\
         \\
-        Figure \ref{fig:dir-map}, shows how lines in memory are mapped to one specific line in the cache.
+        Figure \ref{fig:dir-map}, shows how lines in memory are mapped in a cyclic fashion to lines in the cache.
     }
     \begin{figure}[h]
-        \includegraphics[width=4cm]{direct_mapped.png}
+        \includegraphics[width=4cm]{Results/direct_mapped.png}
         \centering
         \caption{Direct Mapped Cache Diagram}
         \label{fig:dir-map}
@@ -123,15 +167,15 @@ It is also important to note that a cache line can vary in size depending on arc
 
 \section{Parallel Architectures}
 
-\subsection{Cache Coherence}
-Modern Processors are often Multi-Core systems, with each Core having its own Cache System. Figure \ref{fig:parallel-cpu} illustrates a simple Chip which may consist of 4 Cores connected to a Bus and DRAM.
+\subsection{Cache Coherence}\label{cache-coherence}
+Modern Processors are often Multi-Core systems, with each Core having its own Cache System. Figure \ref{fig:parallel-cpu} illustrates a simple Chip which may consist of 4 Cores connected to a Bus and DRAM. \\
 \begin{figure}[!h]
     \centering
     \includegraphics[width=8cm]{Parallel.png}
     \caption{Parallel Chip System}
     \label{fig:parallel-cpu}
-\end{figure}
-It is easy to image that programs would exist, that operate on shared memory, but is able to perform processing on the data in parallel. However, some of the shared memory/data will be required by different cores. Coherence Protocols are a means of tracking where data exists in the different Cores, and ensuring that only one \textbf{value} of a particular piece of data exists. In practise, Coherence Protocols offer write serialisation and write-propogation in many-core systems, as they essentially abstract away the existence of multiple Caches, and create a system where there appears to be only one large Cache.
+\end{figure} \\
+It is easy to envision that programs would exist where data can be processed in a parallel fashion; i.e. where the majority of the processing does not need to be done in any particular order. Such a scenario would mean that all those processing tasks can be run simultaneously on different cores. Cache Coherence Protocols are a means of tracking where data exists in the different Cores, and ensuring that only one \textbf{value} of a particular piece of data exists. In practise, Coherence Protocols offer write serialisation and write-propagation in many-core systems, as they essentially abstract away the existence of multiple Caches, and create a system where there appears to be only one large Cache. Coherence Protocols are implemented using States, which track where the data exists, if its been modified, and if its valid.
 
 \subsection{MESI Protocol}\label{sec:mesi-protocol}
 The \texttt{MESI} Protocol is a Cache Coherence protocol that is based around the following four states:
@@ -165,13 +209,13 @@ P0 R 50
 \verb
 P3 R 50
 \end{center}
-Using Figure \ref{fig:mesi-state}, we look at P0, it performs a "Cold Read" to Line 50, and so now P0 owns Line 50 in Exclusive State. When P3 performs a "Cold Read" to Line 50, the State transitioning from "\textbf{Cold} Read (Is Shared)" triggers, and P3 now owns Line 50 in Shared State. Because this Read is communicated via the bus, it would infact be P0 that supplies P3 with the Line, and P0 would observe a "Remote Read", which following the State Diagram, changes P0's Exclusive Line 50, to a Shared Line 50. Now both P0 and P3 own Line 50 in Shared state. Later sections that discuss Coherence Latencies will make reference to the \texttt{MESI} and \texttt{MESIF} Protocols in order to get data into certain states in a benchmark setting.
+Using Figure \ref{fig:mesi-state}, we look at P0, it performs a "Cold Read" to Line 50, and so now P0 owns Line 50 in Exclusive State. When P3 performs a "Cold Read" to Line 50, the State transitioning from "\textbf{Cold} Read (Is Shared)" triggers, and P3 now owns Line 50 in Shared State. Because this Read is communicated via the bus, it would in fact be P0 that supplies P3 with the Line, and P0 would observe a "Remote Read", which following the State Diagram, changes P0's Exclusive Line 50, to a Shared Line 50. Now both P0 and P3 own Line 50 in Shared state. Later sections that discuss Coherence Latencies will make reference to the \texttt{MESI} and \texttt{MESIF} Protocols in order to get data into certain states in a benchmark setting.
 
 \subsection{MESIF Protocol}\label{sec:mesif-protocol}
-The \texttt{MESIF} Protocol is an extension and modification of the \texttt{MESI} protocol, that adds the new Forward State, and alters the purpose of the Shared State. In \texttt{MESIF}, a line that exists in Shared State cannot be copied, and instead it holds that only one instance of the Shared Line will be in the Forward State\cite{mesif-paper}, and that the Core that holds the Line in Forward State shall be responsible for forwarding the Data. There is also no guarantee that the Line in Forward State will be spacially close to the requesting Core. The motivation for this additional Forward state, is to reduce traffice on the Bus, because in MESI, if a Core requests data that exists in multiple other Cores in Shared State, all the Cores will respond to the request. However in MESIF, the Core that contains the Shared Line in Forward State is the only Core responsible for responding to the Request. This is enough of an understanding of the \texttt{MESIF} Protocol that is required for understanding the scope of this project, as we will only be interested in understanding how to have Core's own lines in different Coherence States.
+The \texttt{MESIF} Protocol is an extension and modification of the \texttt{MESI} protocol, that adds the new Forward State, and alters the purpose of the Shared State. In \texttt{MESIF}, a line that exists in Shared State cannot be copied, and instead it holds that only one instance of the Shared Line will be in the Forward State\cite{mesif-paper}, and that the Core that holds the Line in Forward State shall be responsible for forwarding the Data. There is also no guarantee that the Line in Forward State will be spatially close to the requesting Core. The motivation for this additional Forward state, is to reduce traffic on the Bus, because in MESI, if a Core requests data that exists in multiple other Cores in Shared State, all the Cores will respond to the request. However in MESIF, the Core that contains the Shared Line in Forward State is the only Core responsible for responding to the Request. This is enough of an understanding of the \texttt{MESIF} Protocol that is required for the scope of this project, as we will only be interested in setting up Cores to own lines in different Coherence States.
 
-\chapter{Understanding KNL Architecture}
-This chapter will talk about what is unique about the KNL Architecture, and what needs to be known to understand how to write benchmarks.
+\chapter{Understanding KNL Architecture}\label{chap:knl-arch}
+This chapter will outline the KNL Architecture, detailing what needs to be known to understand how the benchmarks work.
 \section{Chip Layout}
 \begin{figure}[h]
     \includegraphics[width=10cm]{KNL_Overview.png}
@@ -193,7 +237,7 @@ A tile consists of:
     
     \item 1 x L2 Cache
     \begin{itemize}
-        \item Configurable \texttt{1MB} Cache shared between Cores, or \texttt{512KB} Cache per Core.
+        \item \texttt{1MB} Cache shared between Cores.
         \item \texttt{16-way} set-associative, \texttt{64B} cache lines
         \item Performs a single \texttt{read} in \texttt{1 cycle}.
         \item Performs a single \texttt{write} in \texttt{2 cycles}.
@@ -217,8 +261,8 @@ The mesh of tiles creates a distributed \texttt{L2} Cache. This mesh is configur
     The Chip is divided into four virtual quadrants. Addresses are hashed to a directory in the same quadrant. This means that a core can access data in the \texttt{L2} Cache of any other tile in the same virtual quadrant. A typical miss in Quadrant mode starts with a Core missing in its \texttt{L1} Cache, it then checks its own tiles \texttt{L2} Cache, and upon missing, checks the \textbf{quadrant} directory. After missing in the \textbf{quadrant} directory, the request is forwarded to MCDRAM/DRAM(Depending on configuration).\\
     This mode has a lower latency, and higher bandwidth relative to \texttt{All-to-All}. Quadrant's are transparent to software.
     
-    \item \textbf{Sub-NUMA Clustering} \\
-    The Chip is divided into four quadrants. Each exposed to the OS as a seperate NUMA\footnote{NUMA: Non-Uniform Memory Access; The idea that different cores have their own physical memory.} domain. To the operating system, this looks analogous to a 4 socket Xeon(server) processor. A typical miss in Sub-NUMA mode starts with a Core missing in its \texttt{L1} Cache, it then checks the \textbf{quadrant} directory. After missing in the \textbf{quadrant} directory, the request is forwarded to MCDRAM/DRAM(Depending on configuration). \\
+    \item \textbf{Sub-NUMA Clustering}\label{snc4-explained} \\
+    The Chip is divided into four quadrants. Each exposed to the OS as a separate NUMA\footnote{NUMA: Non-Uniform Memory Access; The idea that different cores have their own physical memory.} domain. To the operating system, this looks analogous to a 4 socket Xeon(server) processor. A typical miss in Sub-NUMA mode starts with a Core missing in its \texttt{L1} Cache, it then checks the \textbf{quadrant} directory. After missing in the \textbf{quadrant} directory, the request is forwarded to MCDRAM/DRAM(Depending on configuration). \\
     This mode has the lowest latency of all three modes, due to the nature of NUMA and spacial locality, but requires software support to handle the distributed memory.
     
 \end{itemize}
@@ -228,7 +272,7 @@ The KNL Chip includes a new layer of high-bandwidth memory that is spatially clo
 
 \begin{itemize}
     \item \textbf{Cache Mode} \\
-    The 16GB of memory is used to cache DRAM. This is completely transparent to software, and so any memory address that doesn't exist in the \texttt{L1} or \texttt{L2} Cache's is directed to MCDRAM next. When considering access latencies, visiting MCDRAM is already more costly than visiting DRAM, but missing in MCDRAM also then requires a further lookup to main memory. This effectively means that cache mode is best used for frequently used contiguous\footnote{Contiguous Memory: Memory that exists spatially next to each other.} memory, as it can be be pulled into \texttt{L2} and \texttt{L1} Caches with less memory accesses.
+    The 16GB of memory is used to cache DRAM. This is completely transparent to software, and so any memory address that doesn't exist in the \texttt{L1} or \texttt{L2} Cache's is directed to MCDRAM next. When considering access latencies, visiting MCDRAM is already more costly than visiting DRAM, but missing in MCDRAM also then requires a further look up to main memory. This effectively means that cache mode is best used for frequently used contiguous\footnote{Contiguous Memory: Memory that exists spatially next to each other.} memory, as data can be be pulled into \texttt{L2} and \texttt{L1} Caches with less accesses to memory.
     
     \item \textbf{Flat Mode} \\
     The 16GB of memory is used to extend DRAM, essentially extending its address space. This mode requires programs to be aware of this configuration, and address memory appropriately
@@ -237,17 +281,20 @@ The KNL Chip includes a new layer of high-bandwidth memory that is spatially clo
     The 16GB of memory can be used to both extend DRAM, and cache it. It can be configured to use either 25\% or 50\% of the 16GB as a DRAM Cache, with the rest extending DRAM. This has the benefit of extending DRAM, and also caching data that is frequently used.
 \end{itemize}
 
-\chapter{Writing the Microbenchmarks}
-This chapter will talk about the different approaches to benchmarking latencies and bandwidths of different memory components, and tackling obstacles that would prevent accurate or reliable results.
+\section{Threading}\label{knl-threading}
+Intel's Presentation\cite{intel_pres} on the Knights Landing chip highlights the Core's multithreading capabilities. It is important to note that Core's resources are shared or dynamically re-partitioned among threads, so stalls will be incurred when thread contexts are switched. These observations will be particularly noticeable when discussing our results.
+
+\chapter{Writing the Microbenchmarks}\label{chap:writing-benchmarks}
+This chapter will talk about the different approaches to benchmarking latencies and bandwidths of different memory components, and tackling obstacles that would prevent accurate or reliable results. It will then describe the how the discoveries made were used to create microbenchmarks for the L1 Cache, L2 Cache, DRAM and MCDRAM.
 
 \section{Measuring Latency}\label{measuring-latency}
-For measuring Latencies, a reliable timing technique must be used that is accurate enough to time fine-grain operations to nanosecond precision. At a high level, the latency measuring technique involves taking a reading of time before and after an instruction(s) of interest, and calculating the difference between said times, minus the overhead of timing. It is also important to make sure that we are timing the desired Instructions.
+For measuring latencies, a reliable timing technique must be used that is accurate enough to time fine-grain operations to nanosecond precision. At a high level, the latency measuring technique involves taking a reading of time before and after an instruction(s) of interest, and calculating the difference between said times, minus the overhead of timing. It is also important to make sure that we are timing the desired instructions.
 
 \subsection{Hardware Support/Tools}
 In order to perform high-precision latency benchmarks, we must have hardware support and tools that allow us to take fine-grain measurements of time, as standard c++ timing libraries cannot provide the precision required to gain any meaningful results.
 
 \subsubsection{Timestamp Counter (TSC)}
-The Timestamp Counter (TSC) is a measuring "device" that allows us to get information on the current cycle-count of the processor. Traditionally, the TSC was a register that existed in each Core. The value in the register would be incremented every cycle, and therefore could be read and the value returned could be used to count the number of cycles elapsed. This was useful for programmers to benchmark how their code would perform in terms of cycles spent, but would not provide a portable solution for measuring wall-time\footnote{Wall-Time: Real world time.} since wall-time is a combination of Cycles spent and Core Frequency. \\
+The Timestamp Counter (TSC) is a measuring "device" that allows us to get information on the current cycle-count of the processor. Traditionally, the TSC was a register that existed in each Core. The value in the register would be incremented every cycle, and therefore could be read and the value returned could be used to count the number of cycles elapsed. This was useful for programmers to benchmark how their code would perform in terms of cycles spent, but would not provide a portable solution for measuring wall-time\footnote{Wall-Time: Real world time.} since wall-time is a combination of cycles spent and core frequency. \\
 \\
 Calculating the wall-time using the traditional TSC becomes increasingly difficult when we consider that Intel uses technologies to change Core's frequencies dynamically (for purposes such as power-saving). Since the TSC is also local to each individual Core, it cannot be used to measure code that runs concurrently across multiple cores. Modern Intel CPUs provide access to an "invariant TSC", which increments at set intervals, meaning it can be used for measuring wall-time. Knights Landing does have an invariant TSC, and as such can be used in our microbenchmarks. \\
 \\
@@ -281,9 +328,9 @@ The three core considerations are:
 \end{enumerate}
 
 \subsubsection{Core Affinity}
-Core affinity is the notion of binding a Process or Thread to a Core or range of Cores on a system. This is an important consideration as the TSC is Core Specific. Therefore we want to make sure that we pin our threads to a single core, to ensure that our TSC reads are reading the same register, as there is no guarantee that all TSC Registers across cores will have the same value. \\
+Core affinity is the notion of binding a Process or Thread to a Core or range of Cores on a system. This is an important consideration as the  TSC is Core Specific. Therefore we want to make sure that we pin our threads to a single core, to ensure that our TSC reads are reading the same register, as there is no guarantee that all TSC Registers across cores will have the same value. It also prevents us accidentally measuring the latency of migrating a proces/thread to another Core.\\
 \\
-The Linux c++ library \texttt{sched.h} provides an library for scheduling, and StackOverflow user Ankur Chauhan provided a clean implementation\cite{corepin_src} for pinning the current thread to a specific Core using \texttt{sched.h}. The implementation was tested to ensure it works appropriately and used it within the microbenchmarks.
+The Linux c++ library \texttt{sched.h} provides an library for scheduling, and StackOverflow user Ankur Chauhan provided a clean implementation\cite{corepin_src} for pinning the current thread to a specific Core using \texttt{sched.h}. The implementation was tested to ensure it works appropriately and subsequently it was used within the microbenchmarks.
 
 \subsubsection{Compiler Optimisations}\label{compiler-optimisations}
 
@@ -294,7 +341,7 @@ All compilation is done using the following command to ensure that the features 
 It is important to consider optimisations that the Compiler may use when generating the executable. To ensure that critical sections of the microbenchmarks are not optimised out, we can make use of the \texttt{volatile} keyword, which tells the compiler not to remove the code, in the event that it detects it to be dead code. Later sections will show how the \textbf{volatile} keyword is used to ensure code is not removed.
 
 \subsubsection{Out-of-Order Execution}
-Out-of-Order Execution (OoOE) was introduced in Section 2.1.2, and is a major obstacle in writing correct microbenchmarks. If the microbenchmark code is not crafted carefully, it will be shuffled around by the processor to allow the code to stream through the pipeline quicker, and the instructions that the microbenchmark intends to time, may not be the timed instructions. We will see in Section 4.1.3 how the development of the timing component of our microbenchmarks takes OoOE into account.
+Out-of-Order Execution (OoOE) was introduced in Section 2.1.2, and is a major obstacle in writing correct microbenchmarks. If the microbenchmark code is not crafted carefully, instructions will be shuffled around by the processor to allow the code to stream through the pipeline quicker, and the instructions that the microbenchmark intends to time, may not be the timed instructions. We will see in Section 4.1.3 how the development of the timing component of our microbenchmarks takes OoOE into account.
 
 As I discuss the methodology for arriving at the chosen timing technique, I will refer to these considerations and how they affected the chosen technique.
 
@@ -304,7 +351,7 @@ This section will progressively describe the chosen timing technique with refere
 \subsubsection{Timing Verification}
 In order to have a timing mechanism that could be reliably used in a microbenchmark, it was important not just to experiment with different timing techniques, but to be able to verify our experiments using known values. \\
 \\
-Using Agner Fog's "Instruction Tables"\cite{inst_tables}, which details cycle latency for standard x86 Instructions on different CPU Architectures, a test suite coined the "Sanity Tests" was crafted to ensure that when using a given timing mechanism, it would return valid latencies. These Sanity Tests would also perform "overhead" tests to ensure that the overhead of the timing mechanism was consistent and reliable, otherwise it would not be possible to subtract the overhead from our measured latency. \\
+Using Agner Fog's "Instruction Tables"\cite{inst_tables}, which details cycle latency for standard x86 Instructions on different CPU Architectures, a test suite coined the "Sanity Tests" was crafted to ensure that when using a given timing mechanism, it would return valid latencies. These Sanity Tests would also perform an "overhead" test to ensure that the overhead of the timing mechanism was consistent and reliable, otherwise it would not be possible to subtract the overhead from our measured latency. \\
 \\
 The Sanity Tests timed 1000 runs of the following instructions, and the returned latencies so they could be compared to Fog's table entry for the Knights Landing processor:
 \begin{itemize}
@@ -329,7 +376,7 @@ for i in range(0,1000):
     latencies[(end - start)]++
 
 for idx, latency in enumerate(latencies):
-    print str(idx) + " Cycles Occured " + str(latency) + " Times"
+    print str(idx) + " Cycles Occurred " + str(latency) + " Times"
 \end{minted}
 
 
@@ -345,7 +392,7 @@ unsigned long long timestamp()
 \end{minted}
 This code produces a simple piece of assembly that reads from the TSC and stores the upper 32-bits into one register, and the lower 32-bits into another register, then returns a 64bit integer result. The BenchIT solution also includes a code snippet which essentially "warms-up" the \texttt{RDTSC} instruction, which when included in the microbenchmarks, improved consistency of the results across runs.\\
 \\
-This is a good foundation on which to build a timing mechanism but it does not inherintly tackle the issue of \texttt{OoOE}, so it must be modified to include some serialising instruction(s).
+This is a good foundation on which to build a timing mechanism but it does not inherently tackle the issue of \texttt{OoOE}, so it must be modified to include some serialising instruction(s).
 
 \subsubsection{Serialising via \texttt{CPUID}}
 Building upon the solution provided by BenchIT, experiments with placing \texttt{CPUID} Instructions around the \texttt{RDTSC} call were experimented with (including solutions provided in an Intel HPC Guide\cite{intel_hpc_guide}) and run through the Sanity Tests, however none of the experiments produced reliable, consistent or correct results.
@@ -377,7 +424,7 @@ An explanation of the code is as follows (also available on Pages 16-17 of \cite
     \item \textit{Line 3} calls \texttt{RDTSC}, which reads the TSC into the \textbf{eax} and \textbf{edx} registers.
     \item \textit{Line 4}, \textit{Line 5}, and \textit{Line 6} then store the \textbf{eax} and \textbf{edx} values to memory.
     \item \textit{Line 7} Informs the Compiler which registers are in use (clobbered) for its own internal knowledge.
-    \item \textit{Line 9} will then contain the Critical Section of code which is to be benchmarked. It is advisable to have the code inlined here in order to ensure that the overhead of a function call is not measured.
+    \item \textit{Line 9} will then contain the Critical Section of code which is to be benchmarked. It is advisable to have the code in-lined here in order to ensure that the overhead of a function call is not measured.
     \item \textit{Line 11} calls \texttt{RDTSCP} which ensures that all the previous instructions have finished executing, and then reads the TSC into the \textbf{eax} and \textbf{edx} registers.
     \item \textit{Line 12}, \textit{Line 13}, and \textit{Line 15} then store the \textbf{eax} and \textbf{edx} values to memory.
     \item \textit{Line 14} calls \texttt{CPUID} which ensures that any code prior has finished executing, and that no proceeding code will be executed prior to \textit{Line 14} which would poison our timing mechanism.
@@ -416,9 +463,9 @@ As mentioned, Table \ref{fig:sanity-results} shows that we are getting consisten
 
 With a benchmarking technique that provides consistent figures, further analysis had to be done to understand how we could improve the accuracy of the results. \\
 \\
-As observed, the results were consistent, but inaccurate. This is due to all observed Latencies being multiples of 13 Cycles. It was hypothesized that this issue exists as a result of an alignment issue with our timing technique and the instruction being timed, and experiments were conducted with timing different numbers of the same Instruction consecutively. For example instead of timing one single \texttt{PAUSE} Instruction, we could instead time \texttt{N} consecutive \texttt{PAUSE} Instructions, and divide our latency (without the overhead) by \texttt{N}. \\
+As observed, the results were consistent, but inaccurate. This was due to all observed latencies being multiples of 13 Cycles. It was hypothesised that this issue exists as a result of an alignment issue with our timing technique and the instruction being timed, and experiments were conducted with timing different numbers of the same Instruction consecutively. For example instead of timing one single \texttt{PAUSE} Instruction, we could instead time \texttt{N} consecutive \texttt{PAUSE} Instructions, and divide our latency (without the overhead) by \texttt{N}. \\
 \\
-After trialing various values for the number of consecutive Instructions, it was found that 13 Instructions yielded results where the observed Latency was most similar to the actual Latency. Figure \ref{fig:measure-alignment} shows a rough pictorial representation of the hypothesis/observation in action, where green blocks represent a 13 Cycle interval, and the blue blocks represent a 25 Cycle \texttt{PAUSE} instruction:
+After trialling various values for the number of consecutive Instructions, it was found that 13 Instructions yielded results where the observed Latency was most similar to the actual Latency. Figure \ref{fig:measure-alignment} shows a rough pictorial representation of the hypothesis/observation in action, where green blocks represent a 13 Cycle interval, and the blue blocks represent a 25 Cycle \texttt{PAUSE} instruction:
 \\
 \begin{figure}[h]
     \includegraphics[width=12cm]{MeasureAlignment.png}
@@ -429,7 +476,7 @@ After trialing various values for the number of consecutive Instructions, it was
 \\
 Although Figure \ref{fig:measure-alignment} does not perfectly ratio the size of our 13 Cycle blocks to our 25 Cycle PAUSE Instructions, thinking about the concept shows that at time \texttt{T1}, our \texttt{PAUSE} Instruction that we are measuring has completed, but due to the accuracy of our timing mechanism, we mark the end of its completion as 26 Cycles (after the second 13 Cycle block). However we see that after so many Instructions, that at time T2, the end of a 13 Cycle block aligns with the end of a \texttt{PAUSE} Instruction. It makes sense that after performing 13 consecutive \texttt{PAUSE} Instructions, that the end of the final \texttt{PAUSE} would align with the of a 13 Cycle block. And that in general, for an Instruction \texttt{X} with a consistent Latency of \texttt{Y} Cycles, queuing 13 of \texttt{X} consecutively will result in \texttt{Y} 13 Cycle blocks aligning with the final \texttt{X} Instruction.  \\
 \\
-We can use this fact to take measurements to an accuracy of 1 Cycle, simply by chaining multiple of the measured Instructions together in multiples of 13 within the timing measurements. Our revised \textit{Sanity Test} now uses Instructions with a lower expected latency, and the results are as follows, with the overhead remaining the same at 39 Cycles:
+We can use this fact to take measurements to an accuracy of 1 Cycle, simply by chaining multiple of the measured Instructions together in multiples of 13 within the timing measurements. Our revised \textit{Sanity Test} now includes instructions with a lower expected latency, to test this hypothesis, and the results are as follows, with the overhead remaining the same at 39 Cycles:
 
 \begin{table}[!h]
 \begin{center}
@@ -453,7 +500,7 @@ Table \ref{fig:sanity-results-2} shows that we get much more accurate results fo
 
 \begin{enumerate}
     \item{{\bf Assembly to Micro-Op Translation} \\
-        Despite writing Assembly Instructions, x86 Instructions are in fact broken down further into Micro-Operations, this is advantageous to the processor as it allows the CPU to re-order sections of an Instruction. This is difficult to investigate as it is Instruction specific, and for the scope of this project, we are interested mostly in Load Instructions, which there is not much Documentation for.
+        Despite writing Assembly Instructions, x86 Instructions are in fact broken down further into Micro-Operations, this is advantageous to the processor as it allows the CPU to re-order 'stages' of an Instruction. This is difficult to investigate as it is Instruction specific, and for the scope of this project, we are interested mostly in Load Instructions, for which there is not much documentation for.
     }
     \item{{\bf Pipeline Optimisations/Considerations} \\
         What Intel's processors do internally is proprietary information, and it is not possible to know exactly what is going on inside the Processor or pipeline, it may be that for some Instructions (for example \texttt{CWDE}) in Table \ref{fig:sanity-results-2}) that the Processor is able to perform an optimisation that can cut the Cycle time for multiple or consecutive identical Instructions.
@@ -503,14 +550,14 @@ An example tutorial detailing the specifics of how inline assembly in Figure \re
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsection{Conclusion}
-From the observations made, it seems fair to hypothesize that there is an uncontrollable margin for error that exists when conducting repeated experiments using Gabriele Paoloni's suggested technique\cite{code_exec_times}. His suggested solution definitely tackles the three most important considerations that were outlined in Section 4.1.2, and further analysis discovered further considerations with respect to the accuracy of the mechanism must be made when using the technique. \\
+From the observations made, it seems fair to hypothesise that there is an uncontrollable margin for error that exists when conducting repeated experiments using Gabriele Paoloni's suggested technique\cite{code_exec_times}. His suggested solution definitely tackles the three most important considerations that were outlined in Section 4.1.2, and further analysis discovered more considerations with respect to the accuracy of the mechanism must be made when using the technique. \\
 \\
 Therefore the implementation of the start and stop timing mechanisms are shown in Figure \ref{fig:starttimestamp-code} and Figure \ref{fig:endtimestamp-code} respectively. It is important to note that the functions take in a reference to a 32-bit integer, and store the upper and lower 32-bits of the TSC in the referenced variables, but do not convert the two variables to a 64-bit value here, as that would incur an overhead that would pollute the measurement, this will become more evident in \hyperref[sec:l1-lat-key-comp]{Section \ref{sec:l1-lat-key-comp}} when discussing the usage of the timing functions. Both functions have the attributes:
     
     \begin{center}
         \texttt{inline \_\_attribute\_\_((always\_inline)) volatile}
     \end{center}
-Which ensure that where ever the function is called, the function is in-lined to that location in the source. This is \emph{extremely} important as it prevents a new stack-frame being created for the function call, and in turn, avoids the overhead of the appropriate stack operations, and the overhead of calling the function. Finally the Microbenchmarks will use the code snippet in Figure \ref{fig:load-inst-code} that was established in Section \ref{sec:gen-loads} for generating independent Load Instructions.
+Which ensure that where ever the function is called, the function is in-lined to that location in the source. This is \emph{extremely} important as it prevents a new stack-frame being created for the function call, and in turn, avoids the overhead of the appropriate stack operations, and the overhead of calling the function. Finally the mcrobenchmarks will use the code snippet in Figure \ref{fig:load-inst-code} that was established in Section \ref{sec:gen-loads} for generating independent Load Instructions.
 
 \begin{figure}[h!]
     \centering
@@ -553,18 +600,18 @@ inline __attribute__((always_inline)) volatile void end_timestamp(
 \end{figure}
 
 \newpage
-\section{Measuring Bandwidth}
+\section{Measuring Bandwidth}\label{measuring-bandwidth}
 The scope of the project includes measuring the bandwidth between the aforementioned \texttt{MCDRAM} memory, but also the standard \texttt{DRAM} memory.
 
 \subsection{Important Considerations}\label{bandwidth_considerations}
-In its purest form, bandwidth is the volume of data that can be transferred concurrently between two points. However in light of the goals of this project, we want to measure the bandwidth of the \texttt{MCDRAM} and \texttt{DRAM} under many different circumstances. This is important to consider and acknowledge because the bandwidth will be different under different circumstances, and when measuring between one or multiple cores, under a varying number of threads.
+In its purest form, bandwidth is the volume of data that can be transferred concurrently between two points. It is important to note that the \texttt{DRAM} and \texttt{MCDRAM} will behave differently depending on how they are configured. Therefore in light of the goals of this project, we want to measure the bandwidth of the \texttt{MCDRAM} and \texttt{DRAM} under all the different memory configurations with varying number of actives threads.
 
-\subsection{STREAM\cite{McCalpin1995}}
+\subsection{STREAM \cite{McCalpin1995}}
 STREAM is a memory bandwidth benchmark developed by John D. McCalpin, Ph.D. that \say{measures sustainable memory bandwidth (in MB/s) and the corresponding computation rate for simple vector kernels.}\cite{STREAM_FAQ} It is an industry standard for measuring \textit{DRAM} memory, and using \texttt{numactl}\cite{numactl_repo}\cite{numactl_man} can be run using multiple threads on either the \texttt{MCDRAM} or \texttt{DRAM}. Section \ref{mcdram-dram-benchmarks-bw} will cover how the STREAM benchmark is used to measure the \texttt{MCDRAM} and \texttt{DRAM} bandwidth.
 
 \newpage
 
-\section{L1 Cache Latency}
+\section{L1 Cache Latency}\label{sec:l1-cache-latency}
 Building upon the conclusion of Section \ref{measuring-latency}, this section will discuss in detail how measuring the latency of a Load to a Local L1 Cache is benchmarked, including noteworthy design choices that were made to ensure that desired functionality was achieved.
 
 
@@ -606,7 +653,7 @@ def getL1Latency(overhead):
 \begin{enumerate}
     \item Pins the Process/Thread to a single Core
     \item Declares a data array that will be large enough to fill the L1 Cache.
-    \item Declares an array of size 500 (say latencies), where latencies[i] is the number of times a Load was measured to have taken i Cycles.
+    \item Declares an array (of size 500), where the i'th element is the number of times a Load was measured to have taken i Cycles.
     \item Loops for 1000 times, to perform repeated trials.
     \item Loop through the L1 Data array, writing to its indices such that the array exists entirely in the L1 Cache.
     \item Read the TSC Register and store its value.
@@ -620,16 +667,16 @@ def getL1Latency(overhead):
 Figure \ref{fig:l1-lat-algo} shows a high level overview of the algorithm, however there are many subtleties that are important to note that cannot be seen from such a high level.
 \begin{enumerate}
     \item{{\bf Timing Overhead} \\
-    The overhead argument in \texttt{Line2} was calculated taking into account that there will be 26 \texttt{MFENCE} Flags/Intructions in the Critical Section, to ensure that the measured Latency doesn't account for the time the Pipeline may have been stalled waiting for Loads to become globally visible. This means that the overhead is calculated using the exact same algorithm as Figure \ref{fig:l1-lat-algo} except the Critical Section contains only 26 \texttt{MFENCE} Flags/Instructions.}\label{timing-overhead-consideration-L1}
+    The overhead argument in \texttt{Line2} was calculated taking into account that there will be 26 \texttt{MFENCE} Flags/Instructions in the Critical Section, to ensure that the measured Latency doesn't account for the time the Pipeline may have been stalled waiting for Loads to become globally visible. This means that the overhead is calculated using the exact same algorithm as Figure \ref{fig:l1-lat-algo} except the Critical Section contains only 26 \texttt{MFENCE} Flags/Instructions.}\label{timing-overhead-consideration-L1}
     
     \item{{\bf Warm-Up Procedure} \\
-    At the start of every iteration (i.e. \texttt{Line 7}) an omitted warmup() procedure is called. This refers to the discovery made in Section \ref{benchit-disc}, that calling \texttt{CPUID}, \texttt{RDTSC}, and \texttt{RDTSCP} numerous times to obtain more repeatable results. }
+    At the start of every iteration (i.e. \texttt{Line 7}) an omitted warmup() procedure is called. This refers to the discovery made in Section \ref{benchit-disc}, that calling \texttt{CPUID}, \texttt{RDTSC}, and \texttt{RDTSCP} numerous times to essentially "warm them up", produces more repeatable and reliable results. }
     
     \item{{\bf Load Addresses} \\
     Between \texttt{Line 12} and \texttt{line 18} the algorithm states that 26 loads are made to consecutive indices of the L1 Data. However in the implementation, it is not consecutive indices, but the actual index is \texttt{N * STRIDE} where \texttt{STRIDE} is the number of 32-bit integers that would fit into a single line in the Cache. This is \emph{extremely} important as it means that all loads hit different Cache Lines, which means that each load will definitely happen independently with the inclusion of the \texttt{MFENCE} Flags/Instructions.}
     
     \item{{\bf Timestamp Usage} \\
-    Both \hyperref[fig:starttimestamp-code]{\texttt{start\_timestamp}} and \hyperref[fig:endtimestamp-code]{\texttt{end\_timestamp}} are used in Figure \ref{fig:timestamp_usage_l1}. This snippet shows that although the TSC is read, the two resultant 32-bit integers (for the upper and lower 32-bits of the 64-bit TSC value) are not converted to a 64-bit value. This is important because had the conversion been conducted within the Critical Section, it would have polluted the measured Latencies and hence the result.
+    Both \hyperref[fig:starttimestamp-code]{\texttt{start\_timestamp}} and \hyperref[fig:endtimestamp-code]{\texttt{end\_timestamp}} are used in Figure \ref{fig:timestamp_usage_l1}. This snippet shows that although the TSC is read, the two resultant 32-bit integers (for the upper and lower 32-bits of the 64-bit TSC value) are not converted to a 64-bit value. This is important because had the conversion been conducted within the Critical Section, it would have polluted the measured latencies and hence the result.
     \begin{figure}[h!]
         \centering
         \begin{minted}[linenos]{cpp}
@@ -650,14 +697,14 @@ Figure \ref{fig:l1-lat-algo} shows a high level overview of the algorithm, howev
     
     }
     \item{{\bf Boundary Checks} \\
-    As the implementation is actually in c++, appropriate care was taken when performing tasks such as array indexing to ensure that abnormal latencies (that would result as a bi-product of OS scheduling) do not cause segmentation faults, or program crashes. }
+    As the implementation is actually in c++, appropriate care was taken when performing tasks such as array indexing to ensure that abnormal latencies (that could result as a bi-product of OS scheduling) do not cause segmentation faults, or program crashes. }
 \end{enumerate}
 
 
 
 \newpage
 
-\section{L2 Cache Latency}
+\section{L2 Cache Latency}\label{sec:l2-cache-latency}
 Building upon the conclusion of \hyperref[measuring-latency]{Section \ref{measuring-latency}} and the Algorithm used in \hyperref[measuring-latency]{Section \ref{sec:l1-lat-algo}}, this section will discuss in detail how measuring the latency of a Load to a Local L2 Cache is benchmarked. The same \hyperref[sec:l1-lat-key-comp]{\emph{Key Features/Components}} mentioned in \hyperref[measuring-latency]{Section \ref{sec:l1-lat-key-comp}} still apply, and further important design decisions will be described.
 
 \subsection{Algorithm}\label{sec:l2-lat-algo}
@@ -703,7 +750,7 @@ def getL2Latency(overhead):
 \subsubsection{Algorithm Walkthrough}
 \begin{enumerate}
     \item Pins the Process/Thread to a single Core
-    \item Declares an array of size 500 (say latencies), where latencies[i] is the number of times a Load was measured to have taken i Cycles.
+    \item Declares an array (of size 500), where the i'th element is the number of times a Load was measured to have taken i Cycles.
     \item Loops for 1000 times, to perform repeated trials.
     \item Declare a data array that will be large enough to fill the L2 Cache.
     \item Loop through the L2 Data array, writing to its indices such that the array exists entirely in the L1 and L2 Cache.
@@ -726,7 +773,7 @@ Figure \ref{fig:l2-lat-algo} shows a high level overview of the algorithm for me
 \newpage
 
 \section{DRAM/MCDRAM Latency}\label{mcdram-dram-benchmarks-lat}
-The Benchmark that is used for determining DRAM Latency is also used for determining MCDRAM Latency. This is possible because we are able use the \texttt{numactl}\cite{numactl_man} terminal command to choose which NUMA Node\footnote{Dependent on L2 Cache and MCDRAM config, MCDRAM and DRAM will be exposed as seperate NUMA Memory Regions that can be targeted by \texttt{numactl}} to target for the programs execution. This means that MCDRAM or DRAM can be used as the next level of memory above the L2 Cache's, and we can write Benchmarks that measure loads beyond the L2 Cache, and depending on the run arguments, time the MCDRAM or DRAM.
+The Benchmark that is used for determining DRAM Latency is also used for determining MCDRAM Latency. This is possible because we are able use the \texttt{numactl}\cite{numactl_man} terminal utility to choose which NUMA Node\footnote{Dependent on L2 Cache and MCDRAM config, MCDRAM and DRAM will be exposed as separate NUMA Memory Regions that can be targeted by \texttt{numactl}} to target for the programs execution. This means that MCDRAM or DRAM can be used as the next level of memory above the L2 Cache's, and we can write Benchmarks that measure loads beyond the L2 Cache, and depending on the run arguments, time the MCDRAM or DRAM.
 \subsection{Algorithm}
 \subsubsection{Algorithm Pseudocode}
 \begin{figure}[h!]
@@ -765,7 +812,7 @@ def getDRAMLatency(overhead):
 \subsubsection{Algorithm Walkthrough}
 \begin{enumerate}
     \item Pins the Process/Thread to a single Core
-    \item Declares an array of size 500 (say latencies), where latencies[i] is the number of times a Load was measured to have taken i Cycles.
+    Declares an array (of size 500), where the i'th element is the number of times a Load was measured to have taken i Cycles.
     \item Declare a data array that will be large enough to perform 13 Loads to.
     \item Loops for 1000 times, to perform repeated trials.
     \item Loop through the data array, flushing the elements from the Cache's, invalidating the lines, and writing back values to DRAM memory.
@@ -779,16 +826,16 @@ def getDRAMLatency(overhead):
 Figure \ref{fig:dram-lat-algo} shows a high level overview of the for measuring [MC]DRAM Load Latencies, all of the key features present in the L1 Latency Benchmark (Section \ref{sec:l1-lat-key-comp}) are also implemented within the L2 Latency Benchmark. There are also two more important design decision within the L2 Latency Benchmark:
 \begin{itemize}
     \item{{\bf Load Ordering} \\
-    Although the [MC]DRAM Load Latency Benchmark performs reads to different lines in memory, the reads must be carefully chosen/ordered in order to prevent data from being pre-fetched. This is important, because if we were to load from line 0, then line 1, then line 2, then subsequent lines will be pulled from memory (as part of a pre-fetching strategy) to the L2 Cache, defeating the purpose of timing loads to [MC]DRAM. In the Benchmark implementation the lines are loaded in the following order: [12,0,11,1,10,2,9,3,8,4,7,5,6] which resulted in avoiding in engaging the pre-fetcher}.
+    Although the [MC]DRAM Load Latency Benchmark performs reads to different lines in memory, the reads must be carefully chosen/ordered in order to prevent data from being pre-fetched. This is important, because if we were to load from line 0, then line 1, then line 2, then subsequent lines will be pulled from memory (as part of a pre-fetching strategy) to the L2 Cache, defeating the purpose of timing loads to [MC]DRAM. In the Benchmark implementation the lines are loaded in the following order: [12,0,11,1,10,2,9,3,8,4,7,5,6] which prevented the pre-fetcher from engaging.}
 \end{itemize}
 
 \newpage
 
-\section{Remote Cache Latency(Coherence Miss Latencies)}\label{mcdram-dram-benchmarks}
-In order to conduct remote Cache Load Latencies, we must have multiple threads running concurrently that are tightly synchronised, each with their own task.
+\section{Remote Cache Latency(Coherence Miss Latencies)}\label{coherence-latencies}
+In order to measure remote Cache access latencies, we must have multiple threads running concurrently that are tightly synchronised, each with their own task.
 
-\subsection{Thread Structures}
- The benchmark program begins by creating a thread for each core, and in the creation of the thread, passes the Core that the Thread should be pinned to, and the state in which the Thread should perform its task. Therefore the following flow chart shows the behaviour of all threads within the program:
+\subsection{Thread Structure}
+ The benchmark program begins by creating a thread for each core, and in the creation of the thread, passes the Core that the Thread should be pinned to, the task the thread should perform, and the state in which the Thread should perform its task. Therefore the following flow chart shows the behaviour of all threads within the program:
 
 \begin{figure}[!h]
     \centering
@@ -799,35 +846,34 @@ In order to conduct remote Cache Load Latencies, we must have multiple threads r
 
 The flowchart visualises what is essentially a while loop that runs while we are still progressing through the benchmark, and an if statement that will trigger the desired behaviour under certain global state conditions. \\
 \\
-The benchmarks are capable of measuring Remote L1 Load Latencies in the different key states defined by the \texttt{MESIF} Cache Coherence Protocol which was discussed in Section \ref{sec:mesif-protocol}.
+The benchmarks are capable of measuring Remote L1 Load Latencies in the Modified and Exclusive states from the \texttt{MESIF} Cache Coherence Protocol(which was briefly discussed in Section \ref{sec:mesi-protocol} and Section \ref{sec:mesif-protocol}) but was not fully completed for loads to lines in the Shared state. It is  important to note that it was chosen that only 1 thread is pinned to a Core, as this will avoid the complications of assigning multiple threads to the same Core that were briefly outlined in Section \ref{knl-threading}. It was observed that filling every logical core\footnote{Logical Core: If a Core is capable of executing 4 Threads simultaneously, the OS sees this Core as 4 Logical Cores.} would increase the execution times of benchmarks, and produce incorrect results, likely as a result of the threads sharing Core resources.
 
-\subsection{Tasks}
-Tasks are pinned to cores depending on the specific Latency that we want to measure. We will refer to the \emph{Base Core} as the Core where the Line exists in the desired State, and the \emph{Target Core} to be the Core we wish to access the data in the \emph{Base Core} from. For example, if we want to measure the Latency of Core 5 accessing data that exists in Core 0's L1 Cache in Modified State, the \emph{Base Core} would be Core 0, and the \emph{Target Core} would be Core 5. In the case of measuring Latencies to data in the Shared state, we refer to the \emph{Alt Core} as the Core which will also hold the shared data alongside the \emph{Base Core}.
+\subsection{Thread Tasks}
+Tasks are pinned to cores depending on the latency we want to measure. We will refer to the \emph{Base Core} as the Core where the Cache Line's of interest exists in the desired State, and the \emph{Target Core} to be the Core we wish to access said lines in the \emph{Base Core} from. For example, to measure the latency of Core 5 accessing data that exists in Core 0's L1 Cache in Modified State, the \emph{Base Core} would be Core 0, and the \emph{Target Core} would be Core 5. In the case of measuring latencies to data in the Shared state, we refer to the \emph{Alt Core} as the Core which will also hold the shared data alongside the \emph{Base Core}.
 
 \subsubsection{Write Data}
-Figure \ref{fig:write-data-task-code} shows how a thread purposed with writing data would write the data. It involves iterating over the shared data, and assigning new values to each index. Upon completing the for loop, all the data will exist in Modified state in the L1 Cache of the Core that the thread was pinned to.
+Figure \ref{fig:write-data-task-code} shows how a thread could own Modified State data. It involves iterating over the shared data, and assigning new values to each index. Upon completing the for loop, all the data will exist in Modified state in the L1 Cache of the Core that the thread was pinned to.
 \begin{figure}[!h]
     \centering
     \begin{minipage}{0.7\textwidth}
     \begin{minted}[linenos]{cpp}
-for (int i=0; i < (300 * STRIDE); i++) {
+for (int i=0; i < 300; i++) {
     shared_data[i] = i;
 }
-asm volatile("MFENCE");
 currState++;
     \end{minted}
     \end{minipage}
-    \caption{Write Data Task}
+    \caption{Write Data Task - C++ Code}
     \label{fig:write-data-task-code}
 \end{figure}
 
 \subsubsection{Read Data}
-Figure \ref{fig:read-data-task-code} shows how a thread purposed with reading data would read the data. It involves iterating over the shared data, and using the Load technique discussed in Section \ref{sec:gen-loads}. Upon completing the for loop, all the data will exist in either Exclusive or Shared state in the L1 Cache of the Core that the thread was pinned to, depending on what tasks the other threads are assigned.
+Figure \ref{fig:read-data-task-code} shows how a thread could own Exclusive/Shared data. It involves iterating over the shared data, and performing loads to the data (using the Load technique discussed in Section \ref{sec:gen-loads}). Upon completing the for loop, all the data will exist in either Exclusive or Shared state in the L1 Cache of the Core that the thread was pinned to, depending on what tasks the other threads are assigned.
 \begin{figure}[!h]
     \centering
     \begin{minipage}{0.7\textwidth}
     \begin{minted}[linenos]{cpp}
-for (int i=0; i < (300 * STRIDE); i++) {
+for (int i=0; i < 300; i++) {
     asm volatile (
         "\n\tmov %1, %0"
         "\n\tMFENCE"
@@ -835,23 +881,45 @@ for (int i=0; i < (300 * STRIDE); i++) {
         :"r"(shared_data[i]):
     );
 }
-asm volatile("MFENCE");
 currState++;
     \end{minted}
     \end{minipage}
-    \caption{Write Data Task}
+    \caption{Read Data Task - C++ Code}
     \label{fig:read-data-task-code}
 \end{figure}
 
 \subsubsection{Time Data Access}\label{coherence-timing-task}
-The thread purposed with timing the remote access simply uses the concepts discussed in Section \ref{measuring-latency}, which results in the same code used in Figure \ref{fig:timestamp_usage_l1} to time 26 Loads to different Cache Lines within the range of \texttt{shared\_data[0]} to \texttt{shared\_data[300]}. The Latencies measured are again stored in an array, where index \texttt{i} of the array contains the number of times a Latency of \texttt{i} Cycles was measured.
+The thread purposed with timing the remote access uses the same method of accessing the data that was used in the previous latency benchmarks,  in Section \ref{measuring-latency}, which results in the same code used in Figure \ref{fig:timestamp_usage_l1} to time 26 Loads to different Cache Lines within the range of \texttt{shared\_data[0]} to \texttt{shared\_data[300]}. Figure \ref{fig:time-access} again shows the code snippet. The latencies measured are again stored in an array, where index \texttt{i} of the array contains the number of times a latency of \texttt{i} cycles was measured.
+
+\begin{figure}[!h]
+    \centering
+    \begin{minted}[linenos]{python}
+start = start_timestamp()
+# Start Critical Section
+# Perform 26 Loads to shared data.
+load(shared_data[0])
+asm("MFENCE")
+load(shared_data[1])
+asm("MFENCE")
+...
+load(shared_data[25])
+asm("MFENCE")
+# End Critical Section
+end   = end_timestamp()
+
+latency = (end - start - overhead) / 26
+latencies[latency]++    # Increment count of this latency seen
+    \end{minted}
+    \caption{Pseudocode for Timing Data Accesses}
+    \label{fig:time-access}
+\end{figure}
 
 \subsubsection{Dead Task}
-For cores that are not in use, there is a "Dead Task" which simply stalls until the \texttt{currState} is set to -1, then the thread completes its task and returns. These Dead Tasks are allocated to cores to ensure that each core has an active running thread in-case the OS decides to migrate threads.
+For cores that are not in use, there is a "Dead Task" which simply stalls until the \texttt{currState} is set to -1 (marking the experiment is over), then the thread returns/exits. These dead tasks are allocated to cores to ensure that each core has an active running thread, to ensure that all Core's are active.
 
 \subsection{Remote L1 Modified Read}
 \subsubsection{Thread/Task Allocation}
-To perform a Remote L1 Read to a Modified Line, we must have our Base Core modify the data, and then our Target Core should perform the timed accesses to the lines in Modified State. Using the Flow Chart in Figure \ref{fig:thread-flowchart} as our \texttt{createThread()} method, we can use the following pseudocode to generate our Benchmark:
+To perform a load to a Modified Cache Line in a Remote L1 Cache, we must have our Base Core modify the data, and then our Target Core should perform the timed accesses to the data that is in the Modified State. Using the Flow Chart in Figure \ref{fig:thread-flowchart} as our \texttt{createThread()} method, we can use the following pseudocode to generate our benchmark:
 
 \begin{figure}[!h]
     \centering
@@ -888,13 +956,13 @@ currState = -1
 \end{figure}
 
 \subsubsection{Summary}
-In summary, to obtain a Latency measurement for a Load to a Modified Line in a remote L1 Cache, there must be a Core which writes to a set of shared data, and in turn sets it to Modified state in the Cores local Cache. Then, another Core must attempt to read the same set of shared data, which will incur a local Cache miss, and the data will be fetched from another Core. The key features outlined in Section \ref{sec:l1-lat-key-comp}, \ref{sec:l2-lat-key-comp}, and \ref{sec:mem-lat-key-comp} all apply including the Data Declaration Consideration outlined in Section \ref{data-declaration-consideration-L2}, which has minor modifications in implementation to ensure the same global and shared variable can be used independently within the \textit{Trial Section} outlined in Figure \ref{fig:remote-M-read-state}. The repeated trials are performed by the following code snippet:
+In summary, to obtain a latency measurement for a load to a Modified Line in a remote L1 Cache, there must be a Core which performs \textbf{writes} to a set of shared data, and in turn sets it to Modified state in the Cores local Cache. Then, another Core must attempt to read the same set of shared data, which will incur a local Cache miss, and the data will be fetched from the \emph{Base Core} which owns the data in Modified State. The key features outlined in Section \ref{sec:l1-lat-key-comp}, \ref{sec:l2-lat-key-comp}, and \ref{sec:mem-lat-key-comp} all apply including the \textit{Data Declaration Consideration} outlined in Section \ref{data-declaration-consideration-L2}, which has minor modifications in implementation to ensure the same global and shared variable can be used independently and uniquely within the \textit{Trial Section} outlined in Figure \ref{fig:remote-M-read-state}. The repeated trials are performed by the following code snippet as a drop-in replacement for Lines 12 to 15 in Figure \ref{fig:remote-M-read-pseudo}:
 \begin{figure}[!h]
     \centering
     \begin{minipage}{0.8\textwidth}
     \begin{minted}[linenos]{cpp}
-// Do 1000 Trials.
-for (int i = 0; i < 1000; i++) {
+
+for (int i = 0; i < 1000; i++) {    // Do 1000 Trials.
     currTask = 0;
     // Re-allocate shared data to invalidate across all Cores.
     shared_data = (int*)malloc(L2_SIZE_B);
@@ -902,10 +970,8 @@ for (int i = 0; i < 1000; i++) {
 
     /* Threads Complete their Tasks */
         
-    while (currTask != 3) {
-        /* Wait for all 2 Tasks to complete. */
-    }
-
+    while (currTask != 3) { /* Wait for all 2 Tasks to complete. */ }
+    
     // Delete our shared data to prevent memory leaks.
     delete shared_data;
 }
@@ -919,7 +985,7 @@ currTask = -1;  // Signal threads to terminate.
 
 \subsection{Remote L1 Exclusive Read}
 \subsubsection{Thread/Task Allocation}
-To perform a Remote L1 Read to an Exclusive Line, we must have our Base Core Load the data, and then our Target Core should perform the timed accesses to the lines in Exclusive State. Using the Flow Chart in Figure \ref{fig:thread-flowchart} as our \texttt{createThread()} method, we can use the following pseudocode to generate our Benchmark:
+To perform a load to a Cache Line in the Exclusive state in a Remote L1 Cache, we must have our Base Core load the data, and then our Target Core should perform the timed accesses to the data in the Exclusive State. Again, using the Flow Chart in Figure \ref{fig:thread-flowchart} as our \texttt{createThread()} method, we can use the following pseudocode to generate our benchmark:
 
 \begin{figure}[!h]
     \centering
@@ -947,7 +1013,7 @@ currState = -1
     \label{fig:remote-E-read-pseudo}
 \end{figure}
 
-
+\newpage
 \subsubsection{State Diagram}
 \begin{figure}[!h]
     \centering
@@ -957,7 +1023,7 @@ currState = -1
 \end{figure}
 
 \subsubsection{Summary}
-In summary, to obtain a Latency measurement for a Load to an Exclusive Line in a remote L1 Cache, there must be a Core which performs Loads to a set of shared data, and in turn sets it to Exclusive state in the Cores local Cache. Then, another Core must attempt to read the same set of shared data, which will incur a local Cache miss, and the data will be fetched from another Core. The key features outlined in Section \ref{sec:l1-lat-key-comp}, \ref{sec:l2-lat-key-comp}, and \ref{sec:mem-lat-key-comp} all apply including the Data Declaration Consideration outlined in Section \ref{data-declaration-consideration-L2}, which has minor modifications in implementation to ensure the same global and shared variable can be used independently within the \textit{Trial Section} outlined in Figure \ref{fig:remote-M-read-state}. The repeated trials are performed by the following code snippet:
+In summary, to obtain a latency measurement for a load to an Exclusive Line in a remote L1 Cache, there must be a Core which performs \textbf{loads} to a set of shared data, and in turn sets it to Exclusive state in the Cores local Cache. Then, another Core must attempt to read the same set of shared data, which will incur a local Cache miss, and the data will be fetched from the \emph{Base Core} which owns the data in the Exclusive State. The key features outlined in Section \ref{sec:l1-lat-key-comp}, \ref{sec:l2-lat-key-comp}, and \ref{sec:mem-lat-key-comp} all apply including the \textit{Data Declaration Consideration} outlined in Section \ref{data-declaration-consideration-L2}, which has minor modifications in implementation to ensure the same global and shared variable can be used independently within the \textit{Trial Section} outlined in Figure \ref{fig:remote-M-read-state}. The repeated trials are performed by the following code snippet as a drop-in replacement for Lines 13 to 16 in Figure \ref{fig:remote-E-read-pseudo}:
 \begin{figure}[!h]
     \centering
     \begin{minipage}{0.8\textwidth}
@@ -985,9 +1051,9 @@ currTask = -1;  // Signal threads to terminate.
     \label{fig:remote-E-repeat}
 \end{figure}
 
-\subsection{Remote L1 Shared Read}
+\subsection{Remote L1 Shared Read}\label{sec:shared-read}
 \subsubsection{Thread/Task Allocation}
-To perform a Remote L1 Read to a Shared Line, we must have our Base Core read the shared data, then have another Core read the same shared data, and then finally our Target Core should perform the timed accesses to the shared lines in Modified State. This scenario is a little more complex than  Using the Flow Chart in Figure \ref{fig:thread-flowchart} as our \texttt{createThread()} method, we can use the following pseudocode to generate our Benchmark:
+To perform a Remote L1 Read to Shared Cache Lines, we must have our \emph{Base Core} read the shared data, then have another Core (our \emph{Alt Core}) read the same shared data, and then finally our Target Core should perform the timed accesses to the shared lines in the Shared State. This scenario is a little more complex than the previous two, as it involves the use of a third Core, which makes the benchmark more complex. It is more complex because we cannot definitively say if it will be the \emph{Base Core} or the \emph{Alt Core} that will own the lines in the \textit{Forward State}/\textit{Shared State}, meaning that we must take care when deciding which Cores to use. Again, using the Flow Chart in Figure \ref{fig:thread-flowchart} as our \texttt{createThread()} method, we can use the following pseudocode to generate our Benchmark:
 
 \begin{figure}[!h]
     \centering
@@ -1025,8 +1091,8 @@ currState = -1
     \label{fig:remote-S-read-state}
 \end{figure}
 
-subsubsection{Summary}
-In summary, to obtain a Latency measurement for a Load to a Shared Line in a remote L1 Cache, there must be a Core which performs Loads to a set of shared data, and in turn sets it to Exclusive state in the Cores local Cache. Then, another Core must peform the same set of Load Instructions, which will miss in the Core's Local Cache, and the Lines will be retrieved from a Remote Core, and the State of those Lines updated to Shared State. Finally, another Core must attempt to read the same set of shared data, which will incur a local Cache miss, and the data will be fetched from another Core's L1 Cache. The key features outlined in Section \ref{sec:l1-lat-key-comp}, \ref{sec:l2-lat-key-comp}, and \ref{sec:mem-lat-key-comp} all apply including the Data Declaration Consideration outlined in Section \ref{data-declaration-consideration-L2}, which has minor modifications in implementation to ensure the same global and shared variable can be used independently within the \textit{Trial Section} outlined in Figure \ref{fig:remote-M-read-state}. The repeated trials are performed by the following code snippet:
+\subsubsection{Summary}
+In summary, to obtain a latency measurement for a load to a Shared Line in a remote L1 Cache, there must be a Core which performs \textbf{loads} to a set of shared data, and in turn sets it to Exclusive state in that Cores local Cache. Then, another Core must peform the same set of \textbf{loads}, which will miss in the Core's Local Cache, and the Cache Lines will be retrieved from a Remote Core (the \emph{Base Core}), and the State of those Cache Lines will be updated to Shared State in both Cores. Finally, another Core must attempt to load the same set of shared data, which will incur a local Cache miss, and the data will be fetched from the Core that owns the Cache Lines in the \textit{Forward State}. As with the Modified/Exclusive benchmarks, the key features outlined in Section \ref{sec:l1-lat-key-comp}, \ref{sec:l2-lat-key-comp}, and \ref{sec:mem-lat-key-comp} all still apply, including the Data Declaration Consideration outlined in Section \ref{data-declaration-consideration-L2}. The repeated trials are performed by the following code snippet:
 \begin{figure}[!h]
     \centering
     \begin{minipage}{0.8\textwidth}
@@ -1057,50 +1123,364 @@ currTask = -1;  // Signal threads to terminate.
 \newpage
 
 
-\section{MCDRAM/DRAM Bandwidth}\label{mcdram-dram-benchmarks-bw}
-Talk about the benchmark program for measuring MCDRAM latencies and Bandwidth.
-\subsection{STREAM Algorithm}
-\subsubsection{Pseudocode}
-\subsubsection{Explanation}
+\section{DRAM/MCDRAM Bandwidth}\label{mcdram-dram-benchmarks-bw}
+\subsection{STREAM Benchmark}
+The STREAM Benchmark is designed for evaluating High Performance Computing (HPC) systems. HPC systems typically work with large data sets that cannot fit within a typical Cache system. Data of this nature means that processors are typically spending a lot of time waiting for data to be transferred to-and-from memory systems such as DRAM or MCDRAM, and the STREAM benchmark evaluates how much data chips such as the KNL can process per second. In order to evaluate a chips performance in a HPC context, the STREAM tests four "kernels", which are essentially memory and cpu intensive operations that are common in HPC applications.
+
+\begin{table}[!h]
+\begin{center}
+\caption{STREAM Kernels}
+\label{fig:stream-kernels}
+\begin{tabular}{ |c|c| } 
+    \hline
+    Kernel Name & Kernel Operation(s) \\
+    \hline\hline
+    COPY    & \texttt{a(i) = b(i)} \\
+    \hline
+    SCALE   & \texttt{a(i) = q*b(i)} \\
+    \hline
+    SUM     & \texttt{a(i) = b(i) + c(i)} \\
+    \hline
+    TRIAD   & \texttt{a(i) = b(i) + q*c(i)} \\
+    \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+Table \ref{fig:stream-kernels} shows the different kernels operations. As we can see, the \texttt{COPY} Kernel copies data from one memory location to another. The \texttt{SCALE} kernel scales up all data in a region by a certain co-efficient. The \texttt{SUM} kernel sums data from two sources and stores in a third. Finally the \texttt{TRIAD} performs an amalgamation of all the previous kernels.
+
 \subsection{STREAM Usage}
+It is important to ensure that when performing STREAM benchmarks, we perform the benchmarks using the guidelines provided.
+\subsubsection{Compilation}
+Compilation of the STREAM benchmark is important to ensuring that the benchmark can be run in a parallel fashion properly. As such the code was compiled using the following command:
+\begin{center}
+    \texttt{cc stream.c -O3 -o stream -fopenmp -DSTREAM\_ARRAY\_SIZE=64000000}
+\end{center}
+It is important to include the \texttt{-fopenmp} flag, as this will ensure that the code that is marked with \texttt{"\#pragma omp parallel for"} will be parallelised appropriately. We also define the \texttt{STREAM\_ARRAY\_SIZE} to be sufficiently large in accordance with the guidelines.
+
+\subsubsection{Running}
+In order to run the STREAM benchmark in a reliable parallel fashion, it must be invoked by a run-script that exports appropriate environment variables.
+{
+\begin{figure}[!h]
+    \centering
+    \begin{minted}[linenos]{bash}
+export OMP_PROC_BIND=true
+OMP_NUM_THREADS=1   numactl --membind 0 ./stream 
+    \end{minted}
+    \caption{Sample of STREAM Run Script}
+    \label{fig:stream-run-script}
+\end{figure}
+} \\
+
+Figure \ref{fig:stream-run-script} shows a sample of the \texttt{run.sh} script used to invoke the STREAM benchmark. Line 1 exports an environment variable which will ensure that OpenMP Threads cannot be migrated between Cores. Then \texttt{"OMP\_NUM\_THREADS=1"} specifies that there should be exactly 1 OpenMP Thread created. The full run script rials with different numbers of OpenMP Threads, scaling exponentially from 1 Thread to 128 Threads. The \texttt{"numactl --membind 0"} call ensures that the program is run on the appropriate NUMA region. Although the memory location here is bound to NUMA Region 0, this value is substituted with the parameter of the run script, such that different NUMA Regions can be tested.
 
 \newpage
 
-\chapter{Results}
+\chapter{Results}\label{chap:results}
+Results were obtained on a 64 Core Intel Xeon Phi CPU 7210 Clocked at 1.30GHz.
 \section{Latencies}
+
+\subsection{Intra-Tile Latencies}
+Intra-Tile Latencies are Latencies of accessing data in Modified/Exclusive State. In the context of these results, \textbf{Local} refers to the same Core, and \textbf{Remote} refers to the other \emph{Core} that is on the same \emph{Tile}.
+\begin{table}[!h]
+\begin{center}
+\caption{Intra-Tile Latencies}
+\label{fig:intra-tile-latencies}
+\begin{tabular}{ |c|c| } 
+    \hline
+    Cache & Latency \\
+    \hline
+    Local L1 Cache & 0.77ns (1 Cycle) \\
+    Local L2 Cache & 5.38ns (7 Cycles) \\
+    Remote L1 Cache[M/E] & 11.54ns (15 Cycles) \\
+    \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{Inter-Tile Latencies}
+ Inter-Tile Latencies are the Latencies of accessing data in other Tile's L1 Cache in Modified/Exclusive State. In the context of these results, \textbf{Local} refers to the same \emph{Tile}, and \textbf{Remote} refers to another \emph{Tile} in the same NUMA region.
+\begin{table}[!h]
+\begin{center}
+\caption{Inter-Tile Latencies}
+\label{fig:inter-tile-latencies}
+\begin{tabular}{ |c|c|c| } 
+    \hline
+    L2 Cache Config & Latency \\
+    \hline
+    All-to-All & 26.15ns (34 Cycle) \\
+    Quadrant & 26.15ns (34 Cycle) \\
+    Sub NUMA Local & 25.38ns (33 Cycle) \\
+    Sub NUMA Remote & 27.69ns (36 Cycle) \\
+    \hline
+\end{tabular}
+\end{center}
+\end{table}
+
 \newpage
+\subsection{MCDRAM/DRAM Latencies}
+MCDRAM/DRAM Latencies are the Latencies of accessing data that exits only in DRAM or MCDRAM. In the context of these results, \textbf{Local} refers to the memory in the same \emph{NUMA Region}, and \textbf{Remote} refers to memory in another \emph{NUMA Region}.
+\begin{table}[!h]
+\begin{center}
+\caption{MCDRAM Latencies}
+\label{fig:mcdram-latencies}
+\begin{tabular}{ |c|c|c|c| } 
+    \hline
+    L2 Cache Config & Memory Config & Latency \\
+    \hline
+    All-to-All      & Flat  & 169.23ns (220 Cycles) \\
+    All-to-All      & Cache & 169.23ns (220 Cycles) \\
+    Quadrant        & Flat  & 165.38ns (215 Cycles) \\
+    Quadrant        & Cache & 165.38ns (215 Cycles) \\
+    Sub NUMA Local  & Flat  & 161.54ns (210 Cycles) \\
+    Sub NUMA Local  & Cache & 161.54ns (210 Cycles) \\ % eeeh
+    Sub NUMA Remote & Flat  & 173.85ns (226 Cycles) \\
+    Sub NUMA Remote & Cache & 173.85ns (226 Cycles) \\
+    \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}[!h]
+\begin{center}
+\caption{DRAM Latencies}
+\label{fig:dram-latencies}
+\begin{tabular}{ |c|c|c|c| } 
+    \hline
+    L2 Cache Config & Memory Config & Latency \\
+    \hline
+    All-to-All      & Flat  & 134.62ns (175 Cycles) \\
+    Quadrant        & Flat  & 133.08ns (173 Cycles) \\
+    Sub NUMA Local  & Flat  & 127.69ns (166 Cycles) \\
+    Sub NUMA Remote & Flat  & 138.46ns (180 Cycles) \\
+    \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+
+\newpage
+
 \section{Bandwidths}
+
+\subsection{All-to-All}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/dram_a2a_f.png}
+    \caption{DRAM - Flat Mode}
+    \label{res:dram-a2a-f}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/mcdram_a2a_f.png}
+    \caption{MCDRAM - Flat Mode}
+    \label{res:mcdram-a2a-f}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/mcdram_a2a_c.png}
+    \caption{MCDRAM - Cache Mode}
+    \label{res:mcdram-a2a-c}
+\end{figure}
+
+\newpage
 \newpage
 
-\chapter{Discussion}
+\subsection{Quadrant}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/dram_quad_f.png}
+    \caption{DRAM - Flat Mode}
+    \label{res:dram-quad-f}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/mcdram_quad_f.png}
+    \caption{MCDRAM - Flat Mode}
+    \label{res:mcdram-quad-f}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/mcdram_quad_c.png}
+    \caption{MCDRAM - Cache Mode}
+    \label{res:mcdram-quad-c}
+\end{figure}
+
+\newpage
+
+\subsection{Sub-NUMA}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/dram_snc4_f.png}
+    \caption{DRAM - Flat Mode}
+    \label{res:dram-snc4-f}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/mcdram_snc4_f.png}
+    \caption{MCDRAM - Flat Mode}
+    \label{res:mcdram-snc4-f}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/mcdram_snc4_c.png}
+    \caption{MCDRAM - Cache Mode}
+    \label{res:mcdram-snc4-c}
+\end{figure}
+
+\chapter{Discussion}\label{chap:discussion}
+When discussing results, I will refer to the system presented in the paper by Hackenberg, Molka and Nagel\cite{cache-coherence-paper} as the "Nehalem" system.
 \section{Latency Conclusions}
-\subsection{L1 Latencies Results}
-\subsubsection{Observations}
-\subsubsection{Potential Errors/Improvements}
-\subsubsection{Evaluation}
-\subsection{L2 Latencies Results}
-\subsubsection{Observations}
-\subsubsection{Potential Errors/Improvements}
-\subsubsection{Evaluation}
+\subsection{Intra-Tile Results}
+\subsubsection{Local L1 Cache}
+The measured Latencies in Table \ref{fig:intra-tile-latencies} follow an expected trend. We see that an L2 Access takes longer than an L1 Access, and that Accessing data in the Tile's adjacent Core L1 takes roughly twice the time of an L2 Access. However it is possible that the results could be incorrect. If we refer to Nehalem system, we see that their test system is a 2.6GHz Chip with a measured L1 Latency of 1.3ns/4 Cycles. Our benchmarks were run on a 1.3GHz chip and resulted in 1 Cycle/0.77ns. It is unlikely that Intel (roughly) halved the latency of an L1 Cache access, and is it more likely that there is error within the timing mechanism that could cause incorrect rounding of Cycles when measuring multiple loads. If we consider an Intel article published by Eric G.\cite{eric-intel-article}, it specifies that the L1 Data Cache has two 64B Load Ports. Despite including Memory Fences after every load, it could be possible that the underlying architecture is able to process 2 Loads simultaneously. If it were the case that our microbenchmark loads were processed two at a time, then our measured latency would infact be roughly double the observed. This would make our L1 Latency be 1.54ns, which aligns more with observed Latencies on other Intel architectures. Had more time been available, more work could have been done to deeper investigate how the number of loads timed would effect the measured latency.
+
+\subsubsection{Local L2 Cache}
+The Local L2 Cache Latency measured (Table \ref{fig:intra-tile-latencies}) was 5.38ns/7 Cycles. This seems like a reasonable value for an L2 Latency, and when comparing to the Nehalem system, we see that that the Nehalem system had a measured Local L2 Cache Latency is 3.4ns/10 Cycles. Given that the Nehalem system's L2 Cache is 256KB, and our test system's L2 Cache is 1024KB, it would be feasible for the Latency of accessing our system's larger L2 Cache to be higher. Similar to the L1 Cache, it could be possible for the L2 Cache to be dual-ported, and therefore could be processing two loads simultaneously. More work could be done to verify the integrity of the results for example by performing benchmarks on a range of loads. Error may also have been introduced due the way of generating L1 Misses/L2 Hits, perhaps investigating methodologies of properly thrashing\footnote{Thrashing the L1 Cache: Putting the L1 Cache under intense usage, in order to thoroughly remove all existing entries.} the L1 Cache with dead data would have provided more reliable results.
+
+\subsubsection{Remote L1 Cache}
+The measured Latency for a Remote L1 Cache on a Tile was 11.54ns/15 Cycles. \\
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=5cm]{Tile.png}
+    \caption{Tile Memory Pictorial}
+    \label{fig:tile-memory}
+\end{figure}
+If we consider Figure \ref{fig:tile-memory} to be the architecture of the memory system within a Tile, it would make sense that our measured Latency would be 15 Cycles. If we consider that it would take 7 Cycles to determine if the Line exists in the L2, it would then make sense for another ~7 Cycles to retrieve data from the remote L1 Cache, and deliver it to the consuming Core. However as we have already discussed the possible issues that could prevent accurate measurements, we must also consider that similar issues could be carried over into or made more complex in this microbenchmark.
+
+\subsection{Inter-Tile Results}
+Unfortunately, results for accessing data in the Shared state were not reliably measured due to inconsistent and bizarre measured latencies. This may have been due to a lack of understanding of how the MESIF Protocol works, and lack of a deterministic way of determining which Core would be assigned the \emph{Forward} state. When considering the Modified/Exclusive Latencies, in the respective L2 Modes, measured Modified and Exclusive latencies were identical, and are shown in Table \ref{fig:inter-tile-latencies} as a single Latency. There definitely exists an error in the results, as we would expect the latency of accessing remote data in Quadrant mode would be lower than the latency of accessing remote data in All-to-All as per Intel's Presentation on KNL\cite{intel_pres}. However an encouraging trend shows that accessing remote data in a Local Sub-NUMA configuration is faster than all other Cache configurations. It should also be expected that accessing data in a remote NUMA region would incur a large latency, as in theory it should involve an access to main memory in the fashion detailed in Section \ref{snc4-explained}(Under \textit{Sub-NUMA Clustering}). Given that the measured latency for accessing data in a remote NUMA region was 27.69ns/36 Cycles, it is safe to say that an error exists in the experiment/methodology. When conducting the experiments, I ran the programs using the \texttt{numactl} program, ensuring that the NUMA region the program was loaded into was chosen appropriately for measuring remote accesses, verifying that tasks were pinned to appropriate Core using the \texttt{numactl -H}\footnote{\texttt{numactl -H}: Lists all NUMA regions in the system, and which cores exist in which regions.}. Although pinning Tasks to Cores on the same Tile would drastically reduce the Latency(see "Remote L1 Cache" in Table \ref{fig:intra-tile-latencies}), I suspect that perhaps thread placement was not performed properly with respect to the NUMA regions, and had more time been available, research into how to validate this could have highlighted potential issues or verified existing results. In conclusion, I do not believe the results to be reliable, but the consistency of the results and the general trends indicate that there is a solid foundation for microbenchmark coherent cache systems.
+
 \subsection{MCDRAM/DRAM Latencies Results}
-\subsubsection{Observations}
-\subsubsection{Potential Errors/Improvements}
-\subsubsection{Evaluation}
-\section{Bandwidth Conclusions}
-\subsubsection{Observations}
-\subsubsection{Evaluation of STREAM}
-\section{Closing Thoughts}
-% \chapter{TEMP - Citations}
+When conducting MCDRAM/DRAM Latencies, care was taken to ensure that the Latencies measured when accessing data on a single NUMA Node, to avoid the Latencies of cross-NUMA accesses. \\
+\\
+John McCalpin has conducted microbenchmarks to measure the latencies of the MCDRAM and DRAM in different L2 Cache/Memory Configurations\cite{mccalpin_results}. This is useful as it allows us to compare the results obtained for correctness, which can in turn validate aspects of our benchmark suite. \\
+\\
+As can be seen in Table \ref{fig:mcdram-latencies}, the Memory Configuration has no effect on Latency. The following relationship on access latencies holds for both MCDRAM and DRAM:
+\begin{equation}\label{dram-latency-relationship}
+\textrm{Sub-NUMA Local} \leq \textrm{Quadrant} \leq \textrm{All-to-All} \leq \textrm{Sub-NUMA Remote}
+\end{equation}
+Equation \ref{dram-latency-relationship} shows an observed trend that we would expect to see in our results. Furthermore, we can compare our results to those obtained by John McCalpin, and we see the following similarities/differences:
 
-% Note that citations 
-% (like \cite{P1} or \cite{P2})
-% can be generated using {\tt BibTeX} or by using the
-% {\tt thebibliography} environment. This makes sure that the
-% table of contents includes an entry for the bibliography.
-% Of course you may use any other method as well.
+\begin{table}[!h]
+\begin{center}
+\caption{DRAM Latencies Verification (Flat Mode)}
+\label{fig:dram-latencies-verification}
+\begin{tabular}{ |c|c|c| } 
+    \hline
+    L2 Cache Config & McCalpin's Average Latency & Our Average Latency \\
+    \hline
+    All-to-All      & 131.8ns  & 134.62ns \\
+    Quadrant        & 130.4ns  & 133.08ns \\
+    Sub NUMA Local  & 128.2ns  & 127.69ns \\
+    Sub NUMA Remote & 133.1ns  & 138.46ns \\
+    \hline
+\end{tabular}
+\end{center}
+\end{table}
 
-% use the following and \cite{} as above if you use BibTeX
-% otherwise generate bibtem entries
+\begin{table}[!h]
+\begin{center}
+\caption{MCDRAM Latencies Verification (Flat Mode)}
+\label{fig:mcdram-latencies-verification}
+\begin{tabular}{ |c|c|c| } 
+    \hline
+    L2 Cache Config  & McCalpin's Average Latency & Our Average Latency \\
+    \hline
+    All-to-All      & 155.9ns  & 169.23ns \\
+    Quadrant        & 154.0ns  & 165.38ns \\
+    Sub NUMA Local  & 150.5ns  & 161.54ns \\
+    Sub NUMA Remote & 156.8ns  & 173.85ns \\
+    \hline
+\end{tabular}
+\end{center}
+\end{table}
+
+Table \ref{fig:dram-latencies-verification} shows a comparison of our measured DRAM Latencies with John McCalpin's. The comparison shows that although our results are not identical (which is to be expected when dealing with DRAM), we follow a close trend. This trend can be seen if we look at the latency difference between different L2 Cache Configs; for example the difference in latency between All-to-All and Quadrant was roughly 1.4ns in our measurements, and McCalpins. Similar observations can be made when comparing other modes, but with larger margins of error. This property again indicates that our microbenchmarks follow a correct design, but errors exist. I would hypothesise that some error exists within the timing mechanism, due to this trend of slights inconsistencies that exist among all latency benchmarks. Looking at Table \ref{fig:mcdram-latencies-verification} also aligns with this hypothesis, as we see more examples of relative trends.
+
+
+\section{MCDRAM/DRAM Bandwidth Results}
+Figures \ref{res:dram-a2a-f} through \ref{res:mcdram-snc4-c} show the results of the STREAM\cite{STREAM} Benchmark under the conditions mentioned in Section \ref{mcdram-dram-benchmarks-bw}. Across all the benchmarks, we can see that the peak bandwidth measured using MCDRAM is in Figure \ref{res:mcdram-quad-f}, with a peak bandwidth of ~400GB/s, similarly, the peak DRAM bandwidth measured is in Figure \ref{res:dram-quad-f} (or alternatively at a scaled resolution, in Figure \ref{res:dram-quad-f-scaled}), with a peak bandwidth of ~70.5GB/s. Intel declared\cite{intel_pres} that peak bandwidth for DRAM memory would be 90+ GB/s and peak bandwidth for MCDRAM memory would be 400+ GB/s under the STREAM's Triad 'operation'. Comparing to our peak results we see that we are able to achieve 400GB/s for MCDRAM, but only 70GB/s for DRAM under a Copy operation. There are two major observations here. Firstly; peak bandwidths were observed under the Copy operation, and Secondly; our peak bandwidths are slightly lower than those declared by intel. Both of these observations are likely due to our test system being a 64 Core system, where there exists a Knights Landing model that contains 72 Cores. It is reasonable to believe that a 72 Core system would be able to obtain higher bandwidths, considering that more threads could be run simultaneously. That said, our measured bandwidths closely follow the expected trend; MCDRAM has \texttt{4x} the bandwidth of DRAM. Another trend in the results that is noteworthy, is we see the bandwidth increase up until 64 Threads, where we see the bandwidth either plateau or drop off. This makes sense, as our test system has 64 Cores, and there is an expected performance hit when multiple threads are running on a Core concurrently, sharing the Core's resources. We also see that in the case of Sub-NUMA Clustering, our peak measured bandwidths are roughly one quarter of the peak measured bandwidth in \texttt{Quadrant} mode, which is the expected behaviour.
+
+\section{Summary}
+To summarise the results, it would be fair to say that the declared Bandwidths provided by Intel are accurate, and that bandwidths measured on our 64 Core test system would not achieve peak bandwidths relative to the 72 Core Knights Landing chips. When measuring Latencies, it appears that the timing mechanism proposed by Intel\cite{code_exec_times} does provide a reliable timing mechanism for measuring code execution times, but perhaps loses accuracy when measuring load instructions. Had more time been available, further experiments with varying number of loads, or other memory access approaches could have been tried. For example, pointer chasing\footnote{Pointer Chasing: Traversing a linked list, in order to achieve unpredictable memory accesses.} is a common practise in benchmarking suites for generating random accesses to memory. When creating multi-threaded benchmarks for measuring coherence latencies, more work could have been done to ensure thread placement with respect to NUMA regions was resulting in the intended behaviour. This is especially important when considering data in the Shared state, which unfortunately provided no meaningful results following the benchmark structure outlined in Section \ref{coherence-latencies} and Section \ref{sec:shared-read}.
+
+\chapter{Conclusion}\label{chap:conclusion}
+\section{Work Done}
+All code and algorithms presented within this report were my own work, with the exception of the STREAM benchmark, or other code snippets which were otherwise cited. The project work largely involved trying many different sample programs in order to confirm my understanding of computer architecture thus far. A large portion of the work that was done was into researching, trying, and evaluating possible options for measuring latency (as discussed in Section \ref{measuring-latency}). After some base timing mechanism was established, I then worked on building algorithms to place data in specific cache hierarchies, and using the results and observations made, improvements were made to both the algorithm's and the timing techniques. After obtaining measurements for all non-coherence related latencies, I primarily worked on researching how it is possible to measure the bandwidth of the DRAM/MCDRAM and reading Intel documentation on the subject. Many sources pointed to work conducted by John McCalpin, and I then worked on properly using the STREAM benchmark. The final chunk of work was allocated into looking how to write multithreaded applications in context of OpenMP but also simply c++ threading for the purpose of measuring Cache Coherence latencies. Due to the nature of the benchmark, it was important to have a tightly synchronised threads, and so an OpenMP approach would be complicating the matter more than necessary. Using c++ threads, I worked on implementing an algorithm/program structure that would allow me to have multiple threads follow a single state machine. I then used work from my previous latency benchmarks to have threads/Cores perform actions on shared data such as reads/writes. Other work that was attempted but not fully explored includes techniques such as intentional cache thrashing to evict data from different caches, however it did not provide immediate value to all the benchmarks written so it was not fully implemented. I also looked into using a pointer-chasing algorithm for generating random loads, but opted to try a different approach to measuring latencies relative to other benchmark programs. 
+
+\section{Insight Gained}
+Throughout working on the project, I gained a lot of insight into how computer architecture is applied in a parallel fashion under the context of High Performance Computing. For example how HPC systems processor architecture is relevant to the data processed. The project also supplied as a great opportunity to confirm my prior knowledge, for example how applications are executed from a high level, down to a very low level. An example of this is that a lot of the work included inspecting assembly and understanding how compilers generate machine code, and how code is executed. I would also say that the project introduced me to some concepts of code optimisation, for example on the importance of writing cache-friendly code. Finally, the project also provided a great opportunity to solidify my understanding of concepts taught (specifically Cache Coherence) in the Parallel Architectures course taught by Vijay Nagarajan.
+
+\section{Project Outcome}
+The outcome of the project presents a set of results for latencies and bandwidths of accessing data between different memory components of the Knights Landing processor. It is important to read the discussion of the results, as there is further room for improving the benchmark to obtain more accurate results. The project also delivers open-source benchmark programs that can be used for further research in the field. Had more time been available, further work into researching different ways of measuring latencies, and improvements on the current technique would be done. It would also be worth investigating cache thrashing, as an opportunity for placing data in specific areas of the Cache hierarchy.
+
+\chapter{Open-Source Benchmark Suite}\label{chap:benchmark-suite}
+This Chapter provides no further discussion or evaluation on the work done in this project, but shows an outline of the benchmark produced. Specifically, this chapter will introduce how one could run the benchmarks for themselves. The same instructions, plus more background info, can be found at the GitHub repository root: \\
+https://github.com/acwilson96/MicroBenchmarking-KNL
+\section{Repository Structure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics{Results/dir_structure.png}
+    \caption{Repository Structure}
+    \label{fig:repo-struct}
+\end{figure}
+
+
+\section{Benchmarks}
+Contains source-code and associated files for building and executing the different microbenchmarks.
+
+\subsection{Coherence Miss}
+Contains source-code for multi-threaded benchmark which evaluates latencies of accessing data across Cores. \\
+\\
+\textbf{Usage:}
+\begin{minted}{bash}
+make
+./run.sh State1Core ( M | E ) State2Core
+./run.sh State1Core State2Core S State3Core
+\end{minted}
+
+For example, if you wish to trial Core 5 accessing modified data in Core 8's L1 Cache, you would run \texttt{./run.sh 8 M 5}. Or if you wish for Core 1 to access Exclusive data in Core 0: \texttt{./run.sh 0 E 1}. Although the Shared benchmark is not complete, it can be run in a similar fashion, where if you want Core 6 to access data that exists in Core 9 and Core 15 you would run: \texttt{./run.sh 9 15 S 6}.
+
+\subsection{Latencies}
+Contains source-code for microbenchmark for evaluating L1 Cache, L2 Cache, and DRAM/MCDRAM access Latencies. \\
+\\
+\textbf{Usage:}
+\begin{minted}{bash}
+make
+./run.sh numa_region
+\end{minted}
+
+Where numa\_region is the numa-region you wish to run your benchmarks on. In Quadrant/All-to-All and Flat Mode, 0 is DRAM, and 1 MCRAM. It is recommended to perform latency measurements in Quadrant/All-to-All, as the benchmark will interpret the "0" or "1" passed as an argument, to alter the output results.
+
+\subsection{Memory Bandwidth}
+Contains source-code for STREAM Benchmark purposed for Knights Landing. STREAM Courtesy of John McCalpin @ https://www.cs.virginia.edu/stream/ \\
+\\
+\textbf{Usage:}
+\begin{minted}{bash}
+make
+./run.sh numa_region
+\end{minted}
+Where numa\_region is the numa-region you wish to run your benchmarks on. In Quadrant/All-to-All and Flat Mode, 0 is DRAM, and 1 MCRAM.
+
+\subsection{Tools}
+Contains small utility application for converting Cycles to NanoSeconds 
+
+\section{Docs}
+Contains source-control files for the dissertation and results associated with the dissertation.
+
+
 \bibliographystyle{plain}
 \bibliography{mybibfile}
 
@@ -1124,6 +1504,52 @@ The flags\cite{cpuinfo_flags} of interest for Intel systems under this project a
     \item{{\bf \texttt{constant\_tsc}} \\
     The TSC ticks at a constant rate.}
 \end{itemize}
+
+
+\newpage
+\section{Results}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/mcdram_a2a_c_scaled.png}
+    \caption{MCDRAM - Cache Mode - Scaled}
+    \label{res:mcdram-a2a-c-scaled}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/mcdram_quad_c_scaled.png}
+    \caption{MCDRAM - Cache Mode - Scaled}
+    \label{res:mcdram-quad-c-scaled}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/mcdram_snc4_c_scaled.png}
+    \caption{MCDRAM - Cache Mode - Scaled}
+    \label{res:mcdram-snc4-c-scaled}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/dram_a2a_f_scaled.png}
+    \caption{DRAM - Cache Mode - Scaled}
+    \label{res:dram-a2a-f-scaled}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/dram_quad_f_scaled.png}
+    \caption{DRAM - Cache Mode - Scaled}
+    \label{res:dram-quad-f-scaled}
+\end{figure}
+
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=\textwidth]{Results/dram_snc4_f_scaled.png}
+    \caption{DRAM - Cache Mode - Scaled}
+    \label{res:dram-snc4-f-scaled}
+\end{figure}
 
 
 \end{document}
