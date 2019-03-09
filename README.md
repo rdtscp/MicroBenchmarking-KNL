@@ -1,4 +1,7 @@
 # MicroBenchmarking-KNL
+
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/0d3d01af7621410ca41da05a1635286b)](https://app.codacy.com/app/rdtscp/MicroBenchmarking-KNL?utm_source=github.com&utm_medium=referral&utm_content=rdtscp/MicroBenchmarking-KNL&utm_campaign=Badge_Grade_Dashboard)
+
 This repository was used to track my Informatics Honours Project and Dissertation.
 The project involves evaluating the Latencies of core memory components, and the bandwidths of the MCDRAM and DRAM.
 
